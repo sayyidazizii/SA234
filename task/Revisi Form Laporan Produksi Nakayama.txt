@@ -1,0 +1,5 @@
+ISA nakayama
+Form Lap.Produksi Nakayama
+Server	: Dev
+IP	: 131.68.5.220,1433
+Pw	: Admin29

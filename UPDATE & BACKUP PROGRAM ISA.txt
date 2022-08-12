@@ -1,0 +1,12 @@
+CARA UPDATE ISA DARI LOCAL KE LIVE
+-----------------------------------------------------------------------------------------------------
+
+1.Kalau sudah di edit source codenya di vb
+ file .exe nya di copy dan rubah jadi ._xe
+
+2.di pindah di folder X:\SASS\ISA ....
+
+3.Yang lama jangan lupa di backup dulu,di 
+E:\BACKUP PROGRAM
+
+4.kalau sudah tinggal di replace di X:\SASS\ISA ....

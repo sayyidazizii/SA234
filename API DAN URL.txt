@@ -1,0 +1,19 @@
+RPT LIVE
+-----------------------------------------------------------------------
+http://epicordb/reports/manage/catalogitem/properties/ERPSASS-Live/
+http://epicordb/reports/browse/ERPSASS-DEV
+
+user/pw
+-----------------------------------------------------------------------
+Administrator/Admin1701
+
+-----------------------------------------------------------------------
+http://svn.sas-autoparts.com:9880/svn/ISA.Pabrik/trunk/
+http://svn.sas-autoparts.com:9880/svn/ISA.PabrikTax/trunk/
+user: tio/ pass:12345
+
+API
+-----------------------------------------------------------------------
+https://epicorapp/ERPSASS-DEV/api/help/v1/
+user/pass: Api/Api1701
+

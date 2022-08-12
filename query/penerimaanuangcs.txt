@@ -1,0 +1,542 @@
+using System;
+using System.Data;
+using ISA.DAL;
+
+namespace ISA.Pabrik.Nakayama.Finance.BLL.Kasir
+{
+    public class PenerimaanUang
+    {
+
+        #region FIELDS
+        Enums.enumClsState _state = Enums.enumClsState.Empty;
+        Guid _rowID;
+        string _noBukti;
+        DateTime? _tanggal;
+        string _pengirim;
+        Guid _rekeningRowID;
+        Guid _mataUangRowID;
+        double _nominalOri;
+        float _kurs;
+        double _nominalRp;
+        int _jenisPenerimaan;
+        Guid _journalRowID;
+        string _catatan;
+        string _lastUpdatedBy;
+        Guid _customerRowID;
+        #endregion
+
+        #region PROPERTIES
+        public Enums.enumClsState State { get { return _state; } set { _state = value; } }
+        public Guid RowID { get { return _rowID; } set { _rowID = value; } }
+        public string NoBukti { get { return _noBukti; } set { _noBukti = value; } }
+        public DateTime? Tanggal { get { return _tanggal; } set { _tanggal = value; } }
+        public string Pengirim { get { return _pengirim; } set { _pengirim = value; } }
+        public Guid RekeningRowID { get { return _rekeningRowID; } set { _rekeningRowID = value; } }
+        public Guid MataUangRowID { get { return _mataUangRowID; } set { _mataUangRowID = value; } }
+        public double NominalOri { get { return _nominalOri; } set { _nominalOri = value; } }
+        public float Kurs { get { return _kurs; } set { _kurs = value; } }
+        public double NominalRp { get { return _nominalRp; } set { _nominalRp = value; } }
+        public int JenisPenerimaan { get { return _jenisPenerimaan; } set { _jenisPenerimaan = value; } }
+        public Guid JournalRowID { get { return _journalRowID; } set { _journalRowID = value; } }
+        public string Catatan { get { return _catatan; } set { _catatan = value; } }
+        public string LastUpdatedBy { get { return _lastUpdatedBy; } set { _lastUpdatedBy = value; } }
+        public Guid CustomerRowID { get { return _customerRowID; } set { _customerRowID = value; } }
+        #endregion
+
+        #region KONSTRUKTOR
+        public PenerimaanUang()
+        {
+            Reset();
+            _state = Enums.enumClsState.New;
+        }
+
+        public PenerimaanUang(Guid tRowID)
+        {
+            try
+            {
+                DataTable dt = DBTools.DBGetDataTableByRowID("kasir.usp_PenerimaanUang_LIST", tRowID);
+                if (dt != null && dt.Rows.Count > 0)
+                {
+                    SetFromDataRow(dt.Rows[0]);
+                    _state = Enums.enumClsState.Update;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+        }
+
+        public PenerimaanUang(DataRow dr)
+        {
+            try
+            {
+                SetFromDataRow(dr);
+                _state = Enums.enumClsState.Update;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        #endregion
+
+        #region Functions
+        void Reset()
+        {
+            _state = Enums.enumClsState.Empty;
+            _noBukti = "";
+            _tanggal = Tools.GetServerDate();
+            _pengirim = "";
+            _catatan = "";
+            _rekeningRowID = Guid.Empty;
+            _mataUangRowID = Guid.Empty;
+            _nominalOri = 0;
+            _kurs = 1;
+            _nominalRp = 0;
+            _jenisPenerimaan = 0;
+            _journalRowID = Guid.Empty;
+            _customerRowID = Guid.Empty;
+        }
+
+        public bool SetFromDataRow(DataRow dr)
+        {
+            bool result = false;
+            Reset();
+            if (dr != null)
+                try
+                {
+                    _rowID = (Guid)dr["RowID"];
+                    _noBukti = dr["NoBukti"].ToString();
+                    _tanggal = (DateTime?)DateTime.Parse(dr["Tanggal"].ToString());
+                    _pengirim = dr["Pengirim"].ToString();
+                    _rekeningRowID = (Guid)dr["RekeningRowID"];
+                    _mataUangRowID = (Guid)dr["MataUangRowID"];
+                    _nominalOri = double.Parse(dr["NominalOri"].ToString());
+                    _kurs = (float)double.Parse(dr["Kurs"].ToString());
+                    _nominalRp = double.Parse(dr["NominalRp"].ToString());
+                    _jenisPenerimaan = int.Parse(dr["JenisPenerimaan"].ToString());
+                    _catatan = dr["Catatan"].ToString();
+                    if (dr["JournalRowID"] != System.DBNull.Value) _journalRowID = (Guid)dr["JournalRowID"];
+                    if (dr["CustomerRowID"] != System.DBNull.Value) _customerRowID = (Guid)dr["CustomerRowID"];
+                    result = true;
+                }
+                catch (Exception ex)
+                {
+                    Reset();
+                    throw ex;
+                }
+            return result;
+        }
+
+        public string GetNoPerkiraan()
+        {
+            string result = "";
+            if (_rekeningRowID!=null && _rekeningRowID!=Guid.Empty)
+            try
+            {
+                Master.Rekening _rek = new BLL.Master.Rekening(_rekeningRowID);
+                result = _rek.NoPerkiraan;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return result;
+        }
+        #endregion
+
+        #region DBFunctions
+        public static DataTable DBGetListByDate(DateTime? fromDate, DateTime? toDate)
+        {
+            return DBTools.DBGetDataTableByDate("kasir.usp_PenerimaanUang_LIST", fromDate, toDate);
+        }
+
+        public static DataTable DBGetListByCustomer(Guid CustomerRowID, DateTime fromdate, DateTime todate, int islunas)
+        {
+            return DBList(CustomerRowID, fromdate, todate, islunas);
+        }
+
+        public static DataTable DBList(Guid CustomerRowID, DateTime FromDate, DateTime ToDate, int IsLunas)
+        {
+            DataTable dt = null;
+            try
+            {
+                Parameters prm = new Parameters();
+                if(CustomerRowID != Guid.Empty)
+                    prm.AddParameter("@customerrowid", SqlDbType.UniqueIdentifier, CustomerRowID);
+                if(FromDate != DateTime.MinValue)
+                    prm.AddParameter("@fromdate", SqlDbType.DateTime, FromDate);
+                if (ToDate != DateTime.MinValue)
+                    prm.AddParameter("@todate", SqlDbType.DateTime, ToDate);
+                if (IsLunas != 2)
+                    prm.AddParameter("@isPosted", SqlDbType.Bit, IsLunas);
+                dt = DBTools.DBGetDataTable("kasir.usp_PenerimaanUang_LIST_forPiutang", prm);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return dt;
+        }
+
+        //public static DataTable DBGetListBelumIden(DateTime? fromDate, DateTime? toDate)
+        //{
+        //    return DBTools.DBList(fromDate, toDate);
+        //}
+
+        public static DataTable DBList(DateTime? fromDate, DateTime? toDate)
+        {
+            DataTable dt = null;
+            try
+            {
+                Parameters prm = new Parameters();
+                prm.AddParameter("@fromDate", SqlDbType.Date, (DateTime)fromDate);
+                prm.AddParameter("@toDate", SqlDbType.Date, (DateTime)toDate);
+                dt = DBTools.DBGetDataTable("kasir.usp_PenerimaanUang_LIST", prm);
+
+                //if (dt != null && dt.Rows.Count > 0)
+                //{
+                //    dt.Columns.Add("NamaTransaksi", typeof(string));
+                //    foreach(DataRow r in dt.Rows) 
+                //}
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return dt;
+        }
+
+        public static DataTable DBList(DateTime? fromDate, DateTime? toDate, bool isPosted)
+        {
+            DataTable dt = null;
+            try
+            {
+                Parameters prm = new Parameters();
+                prm.AddParameter("@fromDate", SqlDbType.Date, fromDate);
+                prm.AddParameter("@toDate", SqlDbType.Date, toDate);
+                prm.AddParameter("@isPosted", SqlDbType.Bit, isPosted);
+                dt = DBTools.DBGetDataTable("kasir.usp_PenerimaanUang_LIST", prm);
+
+                //if (dt != null && dt.Rows.Count > 0)
+                //{
+                //    dt.Columns.Add("NamaTransaksi", typeof(string));
+                //    foreach(DataRow r in dt.Rows) 
+                //}
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return dt;
+        }
+
+        public bool DBSimpan()
+        {
+            bool result = false;
+            using (Database db = new Database()) result = DBSimpan(db);
+            return result;
+        }
+
+        public bool DBSimpan(Database db)
+        {
+            bool result = false;
+            try
+            {
+                if (_rowID==null || _rowID == Guid.Empty) _rowID = Guid.NewGuid();
+
+                Parameters prm = new Parameters();
+                prm.AddParameter("@RowID", SqlDbType.UniqueIdentifier, _rowID);
+                prm.AddParameter("@NoBukti", SqlDbType.VarChar, _noBukti);
+                prm.AddParameter("@Tanggal", SqlDbType.Date, _tanggal);
+                prm.AddParameter("@Pengirim", SqlDbType.VarChar, _pengirim);
+                prm.AddParameter("@RekeningRowID", SqlDbType.UniqueIdentifier, _rekeningRowID);
+                prm.AddParameter("@MataUangRowID", SqlDbType.UniqueIdentifier, _mataUangRowID);
+                prm.AddParameter("@NominalOri", SqlDbType.Money, _nominalOri);
+                prm.AddParameter("@Kurs", SqlDbType.Float, _kurs);
+                prm.AddParameter("@NominalRp", SqlDbType.Money, _nominalRp);
+                prm.AddParameter("@JenisPenerimaan", SqlDbType.TinyInt, _jenisPenerimaan);
+                if (_journalRowID != null && _journalRowID != Guid.Empty)
+                {
+                    prm.AddParameter("@JournalRowID", SqlDbType.UniqueIdentifier, _journalRowID);
+                }
+                prm.AddParameter("@Catatan", SqlDbType.VarChar, _catatan);
+                prm.AddParameter("@UserID", SqlDbType.VarChar, _lastUpdatedBy);
+                if (_customerRowID != null && _customerRowID != Guid.Empty)
+                {
+                    prm.AddParameter("@CustomerRowID", SqlDbType.UniqueIdentifier, _customerRowID);
+                }
+
+                Command cmd = db.CreateCommand("kasir.usp_PenerimaanUang_INSERT");
+                cmd.Parameters = prm;
+                //cmd.ExecuteNonQuery();
+                object o = cmd.ExecuteScalar();
+                if (o.ToString() == "Ok") result = true; else throw new ISAPabrikException(o.ToString());
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return result;
+        }
+
+        public static DataTable ListGrupJenisPenerimaan()
+        {
+            DataTable dt = new DataTable();
+            dt.TableName = "GrupJenisPengeluaran";
+            dt.Columns.Add("Kode", typeof(int));
+            dt.Columns.Add("Grup", typeof(string));
+            DataRow dr;
+            dr = dt.Rows.Add();
+            dr["Kode"] = 0;
+            dr["Jenis"] = "Umum / Lain-lain";
+            dr = dt.Rows.Add();
+            dr["Kode"] = 1;
+            dr["Grup"] = "HI / DKN";
+            dr = dt.Rows.Add();
+            dr["Kode"] = 2;
+            dr["Grup"] = "Prive / Bon Sementara";
+            dr = dt.Rows.Add();
+            dr["Kode"] = 3;
+            dr["Grup"] = "Penerimaan Vendor";
+            dr = dt.Rows.Add();
+            dr["Kode"] = 4;
+            dr["Grup"] = "Piutang Karyawan";
+            return dt;
+        }
+
+        public static DataTable ListJenisPenerimaan()
+        {
+            DataTable dt = new DataTable();
+            dt.TableName = "JenisPengeluaran";
+            dt.Columns.Add("Grup", typeof(int));
+            dt.Columns.Add("Kode", typeof(int));
+            dt.Columns.Add("Jenis", typeof(string));
+            DataRow dr;
+            dr = dt.Rows.Add();
+            dr["Grup"] = 0;
+            dr["Kode"] = 0;
+            dr["Jenis"] = "Umum / Lain-lain";
+            dr = dt.Rows.Add();
+            dr["Grup"] = 1;
+            dr["Kode"] = 1;
+            dr["Jenis"] = "HI / DKN";
+            dr = dt.Rows.Add();
+            dr["Grup"] = 2;
+            dr["Kode"] = 2;
+            dr["Jenis"] = "Prive / Bon Sementara (Penyelesaian)";
+            dr = dt.Rows.Add();
+            dr["Grup"] = 3;
+            dr["Kode"] = 3;
+            dr["Jenis"] = "Penerimaan Customer";
+            dr = dt.Rows.Add();
+            dr["Grup"] = 4;
+            dr["Kode"] = 4;
+            dr["Jenis"] = "Pembayaran Piutang Karyawan";
+            return dt;
+        }
+
+        public static DataTable DBRptNota(Guid tRowID)
+        {
+            return DBTools.DBGetDataTableByRowID("kasir.rsp_PenerimaanUang_Nota", tRowID);
+        }
+
+        #endregion
+    }
+
+    public class PenerimaanUangDetail
+    {
+        #region FIELDS
+        Enums.enumClsState _state = Enums.enumClsState.Empty;
+        Guid _rowID;
+        Guid _headerRowID;
+        int _src;
+        Guid _refRowID;
+        string _noRef;
+        Guid _mataUangRowID;
+        double _nominalOri;
+        float _kurs;
+        double _nominalRp;
+        string _catatan;
+        string _noPerkiraan;
+        string _lastUpdatedBy;
+        #endregion
+
+        #region Properties
+        public Enums.enumClsState State { get { return _state; } set { _state = value; } }
+        public Guid RowID { get { return _rowID; } set { _rowID = value; } }
+        public Guid HeaderRowID { get { return _headerRowID; } set { _headerRowID = value; } }
+        public int Src { get { return _src; } set { _src = value; } }
+        public Guid RefRowID { get { return _refRowID; } set { _refRowID = value; } }
+        public string NoRef { get { return _noRef; } set { _noRef = value; } }
+        public Guid MataUangRowID { get { return _mataUangRowID; } set { _mataUangRowID = value; } }
+        public double NominalOri { get { return _nominalOri; } set { _nominalOri = value; } }
+        public float Kurs { get { return _kurs; } set { _kurs = value; } }
+        public double NominalRp { get { return _nominalRp; } set { _nominalRp = value; } }
+        public string Catatan { get { return _catatan; } set { _catatan = value; } }
+        public string NoPerkiraan { get { return _noPerkiraan; } set { _noPerkiraan = value; } }
+        public string LastUpdatedBy { get { return _lastUpdatedBy; } set { _lastUpdatedBy = value; } }
+        #endregion
+
+        #region Konstruktor
+        public PenerimaanUangDetail()
+        {
+            Reset();
+            _state = Enums.enumClsState.New;
+        }
+
+        public PenerimaanUangDetail(Guid tRowID)
+        {
+            try
+            {
+                DataTable dt = DBTools.DBGetDataTableByRowID("kasir.usp_PenerimaanUangDetail_LIST", tRowID);
+                if (dt != null && dt.Rows.Count > 0 && SetFromDataRow(dt.Rows[0]))
+                    _state = Enums.enumClsState.Update;
+                else Reset();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public PenerimaanUangDetail(DataRow dr)
+        {
+            try
+            {
+                if (dr != null && SetFromDataRow(dr)) _state = Enums.enumClsState.Update;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+        }
+        #endregion
+
+        #region Functions
+        public void Reset()
+        {
+            _state = Enums.enumClsState.Empty;
+            _headerRowID = Guid.Empty;
+            _src = 0;
+            _refRowID = Guid.Empty;
+            _noRef = "";
+            _mataUangRowID = Guid.Empty;
+            _nominalOri = 0;
+            _kurs = 1;
+            _nominalRp = 0;
+            _noPerkiraan = "";
+            _catatan = "";
+        }
+
+        public bool SetFromDataRow(DataRow dr)
+        {
+            bool result = false;
+            Reset();
+            try
+            {
+                _rowID = (Guid)dr["RowID"];
+                _headerRowID = (Guid)dr["HeaderRowID"];
+                _src = int.Parse(dr["Src"].ToString());
+                _refRowID = (Guid)dr["RefRowID"];
+                _noRef = (dr["NoRef"] == System.DBNull.Value) ? "" : dr["NoRef"].ToString();
+                _mataUangRowID = (Guid)dr["MataUangRowID"];
+                _nominalOri = (dr["NominalOri"] == System.DBNull.Value) ? 0 : double.Parse(dr["NominalOri"].ToString());
+                _kurs = (dr["Kurs"] == System.DBNull.Value) ? 1 : float.Parse(dr["Kurs"].ToString());
+                _nominalRp = (dr["NominalRp"] == System.DBNull.Value) ? 0 : double.Parse(dr["NominalRp"].ToString());
+                _catatan = dr["Catatan"].ToString();
+                _noPerkiraan = (dr["NoPerkiraan"] == System.DBNull.Value) ? "" : dr["NoPerkiraan"].ToString();
+                _lastUpdatedBy = dr["LastUpdatedBy"].ToString();
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                Reset();
+                throw ex;
+            }
+            return result;
+        }
+
+        public bool CekTotalHeader(bool forceUpdate)
+        {
+            bool result = false;
+            try
+            {
+                PengeluaranUang h = new PengeluaranUang(_headerRowID);
+                if (h != null && h.State == Enums.enumClsState.Update)
+                {
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return result;
+        }
+        #endregion
+
+        #region DBFunctions
+        public static DataTable DBGetByHeaderRowID(Guid hRowID)
+        {
+            DataTable dt = null;
+            using (Database db = new Database())
+                try
+                {
+                    Parameters prm = new Parameters();
+                    prm.AddParameter("@HeaderRowID", SqlDbType.UniqueIdentifier, hRowID);
+                    Command cmd = db.CreateCommand("kasir.usp_PenerimaanUangDetail_LIST");
+                    cmd.Parameters = prm;
+                    dt = cmd.ExecuteDataTable();
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            return dt;
+        }
+
+        public bool DBSimpan()
+        {
+            bool result = false;
+            using (Database db = new Database()) result = DBSimpan(db);
+            return result;
+        }
+
+        public bool DBSimpan(Database db)
+        {
+            bool result = false;
+            try
+            {
+                Parameters prm = new Parameters();
+                if (_state == Enums.enumClsState.New && (_rowID == null || _rowID == Guid.Empty)) _rowID = Guid.NewGuid();
+                prm.AddParameter("@RowID", SqlDbType.UniqueIdentifier, _rowID);
+                prm.AddParameter("@HeaderRowID", SqlDbType.UniqueIdentifier, _headerRowID);
+                prm.AddParameter("@Src", SqlDbType.TinyInt, _src);
+                prm.AddParameter("@RefRowID", SqlDbType.UniqueIdentifier, _refRowID);
+                prm.AddParameter("@NoRef", SqlDbType.VarChar, _noRef);
+                prm.AddParameter("@NominalRp", SqlDbType.Money, _nominalRp);
+                prm.AddParameter("@NominalOri", SqlDbType.Money, _nominalOri);
+                prm.AddParameter("@Kurs", SqlDbType.Float, _kurs);
+                prm.AddParameter("@MataUangRowID", SqlDbType.UniqueIdentifier, _mataUangRowID);
+                prm.AddParameter("@Catatan", SqlDbType.VarChar, _catatan);
+                prm.AddParameter("@NoPerkiraan", SqlDbType.VarChar, _noPerkiraan);
+                prm.AddParameter("@UserID", SqlDbType.VarChar, _lastUpdatedBy);
+
+                Command cmd = db.CreateCommand("kasir.usp_PenerimaanUangDetail_INSERT");
+                cmd.Parameters = prm;
+                //DataTable dt;
+                //dt = cmd.ExecuteDataTable();
+                object o = cmd.ExecuteScalar();
+                if (o.ToString() == "Ok") result = true; else throw new ISAPabrikException(o.ToString());
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            } return result;
+        }
+        #endregion
+    }
+}

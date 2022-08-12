@@ -1,0 +1,55 @@
+login as: edp11
+edp11@10.10.10.74's password:
+Welcome to Ubuntu 18.04.3 LTS (GNU/Linux 4.15.0-189-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/advantage
+
+  System information as of Wed Aug 10 03:35:33 UTC 2022
+
+  System load:  0.0                Processes:           121
+  Usage of /:   5.5% of 195.80GB   Users logged in:     1
+  Memory usage: 7%                 IP address for eth0: 10.10.10.74
+  Swap usage:   0%
+
+ * Super-optimized for small spaces - read how we shrank the memory
+   footprint of MicroK8s to make it the smallest full K8s around.
+
+   https://ubuntu.com/blog/microk8s-memory-optimisation
+
+ * Canonical Livepatch is available for installation.
+   - Reduce system reboots and improve kernel security. Activate at:
+     https://ubuntu.com/livepatch
+
+100 packages can be updated.
+1 update is a security update.
+
+New release '20.04.4 LTS' available.
+Run 'do-release-upgrade' to upgrade to it.
+
+
+Last login: Tue Aug  9 03:47:26 2022 from 10.10.10.66
+edp11@svn:~$ ls -la
+total 36
+drwxr-xr-x 4 edp11 edp11 4096 Aug  4 01:41 .
+drwxr-xr-x 3 root  root  4096 Aug  3 13:22 ..
+-rw------- 1 edp11 edp11 2104 Aug  9 10:03 .bash_history
+-rw-r--r-- 1 edp11 edp11  220 Apr  4  2018 .bash_logout
+-rw-r--r-- 1 edp11 edp11 3771 Apr  4  2018 .bashrc
+drwx------ 2 edp11 edp11 4096 Aug  3 13:23 .cache
+drwx------ 3 edp11 edp11 4096 Aug  3 13:23 .gnupg
+-rw-r--r-- 1 edp11 edp11  807 Apr  4  2018 .profile
+-rw-r--r-- 1 edp11 edp11    0 Aug  3 13:24 .sudo_as_admin_successful
+-rw------- 1 root  root   819 Aug  4 01:41 .viminfo
+edp11@svn:~$ cd
+edp11@svn:~$ sudo su
+[sudo] password for edp11:
+root@svn:/home/edp11# cd
+root@svn:~# cd /opt/svn/
+root@svn:/opt/svn# svnadmin create /opt/svn/ISA.Palur.Finance
+svnadmin: E165002: '/opt/svn/ISA.Palur.Finance' is an existing repository
+root@svn:/opt/svn# svnadmin create /opt/svn/ISA.Pabrik
+root@svn:/opt/svn# chmod -R 0777 ISA.Pabrik/
+root@svn:/opt/svn# chown -R www-data:www-data ISA.Pabrik/
+root@svn:/opt/svn#

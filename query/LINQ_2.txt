@@ -1,0 +1,32 @@
+var ttUD05Recs = (from ttUD05Row in ttUD05
+where ttUD05Row.Company == Session.CompanyID
+&& (ttUD05Row.RowMod == "A")select ttUD05Row).FirstOrDefault();//A, U, D
+{
+  if(ttUD05Recs != null)
+  {
+      var date = DateTime.Today;
+      var TahunBulan = date.Year.ToString();
+      
+      var noAwal = TahunBulan.ToString();
+      
+      var ttUD05Recs2 = (from ttUD05Row in Db.UD05
+      where ttUD05Row.Company == Session.CompanyID      
+      && ttUD05Row.Key1.Substring(0, 4) == noAwal
+      select new { ttUD05Row.Key1 } ).ToList();
+      
+      //throw new Ice.BLException(noAwal.ToString() + "-0001");
+      
+      if(ttUD05Recs2 == null || !ttUD05Recs2.Any())
+      {
+        //throw new Ice.BLException(noAwal.ToString() + "0001");
+        ttUD05Recs.Key1 = noAwal + "0001";
+      }
+      else
+      {
+        var tmp01 = ttUD05Recs2.OrderByDescending(x => Convert.ToInt32(x.Key1.Substring(4,4))).FirstOrDefault().Key1.Substring(4,4); 
+        
+        int NoBaru = Convert.ToInt32(tmp01) + 1;
+        ttUD05Recs.Key1 = noAwal + NoBaru.ToString().PadLeft(4,'0');;
+      }
+  }
+}

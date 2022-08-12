@@ -1,0 +1,927 @@
+using System;
+using System.Collections.Generic;
+using System.Data;
+using ISA.DAL;
+
+namespace ISA.Pabrik.Nakayama.Class.Produksi
+{
+    public class WorkOrder
+    {
+        #region Work Order
+        public static DataTable ViewWorkOrder(DateTime fromdate, DateTime todate)
+        {
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTableByDate("ISAPabrikProduksi.dbo.vsp_wo_header", fromdate, todate);
+        }
+
+        public static DataTable ViewWorkOrderDetail(Guid Key)
+        {
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTableByRowID("ISAPabrikProduksi.dbo.vsp_wo_detail", Key);
+        }
+
+        public static DataTable ViewTargetWOD(Guid Key)
+        {
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTableByRowID("ISAPabrikProduksi.dbo.vsp_wo_target", Key);
+        }
+
+        public static DataTable ViewRecoveryWOD(Guid RowID, Guid IDWOD)
+        {
+            Parameters prm = new Parameters();
+            if (RowID != Guid.Empty) { prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, RowID)); }
+            if (IDWOD != Guid.Empty) { prm.Add(new Parameter("@IDWOD", SqlDbType.UniqueIdentifier, IDWOD)); }
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.vsp_wo_recovery", prm);
+        }
+
+        public static DataTable DelWorkOrder(Guid Key)
+        {
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTableByRowID("ISAPabrikProduksi.dbo.psp_wo_header_del", Key);
+        }
+
+        public static DataTable DelWorkOrderDetail(Guid Key)
+        {
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTableByRowID("ISAPabrikProduksi.dbo.psp_wo_detail_del", Key);
+        }
+
+        public static DataTable DelTargetWO(Guid Key)
+        {
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTableByRowID("ISAPabrikProduksi.dbo.psp_wo_target_del", Key);
+        }
+
+        public static DataTable DelRecoveryWO(Guid Key)
+        {
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTableByRowID("ISAPabrikProduksi.dbo.psp_wo_recovery_del", Key);
+        }
+
+        public static void SaveWorkOrder(Guid ID, string NoOrder, DateTime TglOrder, Guid IDLini, string Keterangan, DateTime FromDate, DateTime ToDate, string Jenis, Guid LVCRowID)
+        {
+            Parameters prm = new Parameters();
+            if (ID == Guid.Empty) { ID = Guid.NewGuid(); }
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, ID));
+            prm.Add(new Parameter("@NoOrder", SqlDbType.VarChar, NoOrder));
+            prm.Add(new Parameter("@TglOrder", SqlDbType.Date, TglOrder));
+            prm.Add(new Parameter("@IDLiniProduksi", SqlDbType.UniqueIdentifier, IDLini));
+            prm.Add(new Parameter("@TglStartOrder", SqlDbType.Date, FromDate));
+            prm.Add(new Parameter("@TglCloseOrder", SqlDbType.Date, ToDate));
+            prm.Add(new Parameter("@TypeOrder", SqlDbType.VarChar, Jenis));
+            prm.Add(new Parameter("@Keterangan", SqlDbType.VarChar, Keterangan));
+            prm.Add(new Parameter("@LVCRowID", SqlDbType.UniqueIdentifier, LVCRowID));
+            prm.Add(new Parameter("@isUser", SqlDbType.VarChar, SecurityManager.UserInitial));
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryParam("ISAPabrikProduksi.dbo.psp_wo_header", prm);
+        }
+
+        public static void SaveWorkOrderDetail(Guid ID, Guid IDHeader, Guid IDSODetail, Guid IDMaterial, double Qty, double Target, string Keterangan, Guid IDMesin, bool ActualBOM)
+        {
+            Parameters prm = new Parameters();
+            if (ID == Guid.Empty) { ID = Guid.NewGuid(); }
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, ID));
+            prm.Add(new Parameter("@IDWO", SqlDbType.UniqueIdentifier, IDHeader));
+            if (IDSODetail != Guid.Empty) { prm.Add(new Parameter("@IDSODetail", SqlDbType.UniqueIdentifier, IDSODetail)); }
+            prm.Add(new Parameter("@IDMaterial", SqlDbType.UniqueIdentifier, IDMaterial));
+            //if (IDMesin != Guid.Empty) { prm.Add(new Parameter("@IDMesin", SqlDbType.UniqueIdentifier, IDMesin)); }
+            prm.Add(new Parameter("@Qty", SqlDbType.Float, Qty));
+            //prm.Add(new Parameter("@QtyTarget", SqlDbType.Float, Target));
+            prm.Add(new Parameter("@Keterangan", SqlDbType.VarChar, Keterangan));
+            prm.Add(new Parameter("@isUser", SqlDbType.VarChar, SecurityManager.UserInitial));
+            prm.Add(new Parameter("@ActualBOM", SqlDbType.Bit, ActualBOM));
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryParam("ISAPabrikProduksi.dbo.psp_wo_detail", prm);
+        }
+
+        public static void SaveTargetWO(Guid ID, Guid IDDetail, Guid IDHeader, DateTime TglTarget, int Shift, Guid ProsesID, Guid MesinID, Guid IDMaterial, double Qty, string Keterangan, int Jenis, double waktu)
+        {
+            Parameters prm = new Parameters();
+            if (ID == Guid.Empty) { ID = Guid.NewGuid(); }
+            //prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, ID));
+            //prm.Add(new Parameter("@IDWO", SqlDbType.UniqueIdentifier, IDHeader));
+            //prm.Add(new Parameter("@IDWOD", SqlDbType.UniqueIdentifier, IDDetail));
+            //prm.Add(new Parameter("@TglTarget", SqlDbType.Date, TglTarget));
+            //prm.Add(new Parameter("@ProsesID", SqlDbType.UniqueIdentifier, ProsesID));
+            //prm.Add(new Parameter("@MesinID", SqlDbType.UniqueIdentifier, MesinID));
+            //prm.Add(new Parameter("@Shift", SqlDbType.Int, Shift));
+            //prm.Add(new Parameter("@IDMaterial", SqlDbType.UniqueIdentifier, IDMaterial));
+            //prm.Add(new Parameter("@Qty", SqlDbType.Float, Qty));
+            //prm.Add(new Parameter("@Jenis", SqlDbType.Int, Jenis));
+            //prm.Add(new Parameter("@Keterangan", SqlDbType.VarChar, Keterangan));
+            //prm.Add(new Parameter("@isUser", SqlDbType.VarChar, SecurityManager.UserInitial));
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, ID));
+            prm.Add(new Parameter("@IDWO", SqlDbType.UniqueIdentifier, IDHeader));
+            prm.Add(new Parameter("@IDWOD", SqlDbType.UniqueIdentifier, IDDetail));
+            prm.Add(new Parameter("@TglTarget", SqlDbType.Date, TglTarget));
+            prm.Add(new Parameter("@ProsesID", SqlDbType.UniqueIdentifier, ProsesID));
+            if(MesinID != Guid.Empty)
+                prm.Add(new Parameter("@MesinID", SqlDbType.UniqueIdentifier, MesinID));
+            prm.Add(new Parameter("@Shift", SqlDbType.Int, Shift));
+            prm.Add(new Parameter("@IDMaterial", SqlDbType.UniqueIdentifier, IDMaterial));
+            prm.Add(new Parameter("@Qty", SqlDbType.Float, Qty));
+            prm.Add(new Parameter("@cycletime", SqlDbType.Float, waktu));
+            prm.Add(new Parameter("@Keterangan", SqlDbType.VarChar, Keterangan));
+            prm.Add(new Parameter("@IsUser", SqlDbType.VarChar, SecurityManager.UserInitial));
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryParam("ISAPabrikProduksi.dbo.psp_wo_target", prm);
+        }
+
+        public static void SaveRecoveryWO(Guid ID, Guid IDDetail, Guid IDHeader, DateTime TglTarget, int Shift, Guid ProsesID, Guid MesinID, Guid IDMaterial, double Qty, string Keterangan, int Jenis, double waktu)
+        {
+            Parameters prm = new Parameters();
+            if (ID == Guid.Empty) { ID = Guid.NewGuid(); }
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, ID));
+            prm.Add(new Parameter("@IDWO", SqlDbType.UniqueIdentifier, IDHeader));
+            prm.Add(new Parameter("@IDWOD", SqlDbType.UniqueIdentifier, IDDetail));
+            prm.Add(new Parameter("@TglTarget", SqlDbType.Date, TglTarget));
+            prm.Add(new Parameter("@ProsesID", SqlDbType.UniqueIdentifier, ProsesID));
+            if (MesinID != Guid.Empty)
+                prm.Add(new Parameter("@MesinID", SqlDbType.UniqueIdentifier, MesinID));
+            prm.Add(new Parameter("@Shift", SqlDbType.Int, Shift));
+            prm.Add(new Parameter("@IDMaterial", SqlDbType.UniqueIdentifier, IDMaterial));
+            prm.Add(new Parameter("@Qty", SqlDbType.Float, Qty));
+            prm.Add(new Parameter("@cycletime", SqlDbType.Float, waktu));
+            prm.Add(new Parameter("@Keterangan", SqlDbType.VarChar, Keterangan));
+            prm.Add(new Parameter("@IsUser", SqlDbType.VarChar, SecurityManager.UserInitial));
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryParam("ISAPabrikProduksi.dbo.psp_wo_recovery", prm);
+        }
+
+        public static void SaveDepreciationProdTime(Guid ID, Guid HeaderID, string Kategori, double waktu)
+        {
+            Parameters prm = new Parameters();
+            if (ID == Guid.Empty) { ID = Guid.NewGuid(); }
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, ID));
+            prm.Add(new Parameter("@HeaderID", SqlDbType.UniqueIdentifier, HeaderID));
+            prm.Add(new Parameter("@Kategori", SqlDbType.VarChar, Kategori));
+            prm.Add(new Parameter("@Waktu", SqlDbType.Float, waktu));
+            prm.Add(new Parameter("@IsUser", SqlDbType.VarChar, SecurityManager.UserName));
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryParam("ISAPabrikProduksi.dbo.usp_BDTWDepreciationTime_Insert", prm);
+        }
+
+        public static DataTable LapPlaningProduksi(DateTime FromDate, DateTime ToDate, Guid IDP)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@fromdate", SqlDbType.Date, FromDate));
+            prm.Add(new Parameter("@todate", SqlDbType.Date, ToDate));
+            if (IDP != Guid.Empty) { prm.Add(new Parameter("@ProsesID", SqlDbType.UniqueIdentifier, IDP)); }
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_planing_produksi", prm);
+        }
+        #endregion
+
+        #region LookUP
+        public static DataTable GetSO2WO()
+        {
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTableNoParam("ISAPabrikProduksi.dbo.usp_so2wo");
+        }
+
+        public static DataTable GetWorkCenterWIP()
+        {
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTableNoParam("ISAPabrik.dbo.usp_workcenter");
+        }
+
+        public static DataTable GetWorkCenterWIP(Guid liniproduksirowid)
+        {
+            using (Database db = new Database(Class.GlobalVar.DBPabrikProduksi))
+            {
+                db.Commands.Add(db.CreateCommand("usp_GetWorkCenterByLineProduksi"));
+                db.Commands[0].Parameters.Add(new Parameter("@LiniProduksiRowID", SqlDbType.UniqueIdentifier, liniproduksirowid));
+                DataTable dtWorkCenter = new DataTable();
+                dtWorkCenter = db.Commands[0].ExecuteDataTable();
+                return dtWorkCenter;
+            }
+        }
+
+
+        public static DataTable GetResep(Guid ID, Guid IDP, string WC, double Qty, Guid IDM,DateTime Tgl,int Shift)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, ID));
+            if (WC != string.Empty) { prm.Add(new Parameter("@WC", SqlDbType.VarChar, WC)); }
+            prm.Add(new Parameter("@Qty", SqlDbType.Float, Qty));
+            prm.Add(new Parameter("@ProsesID", SqlDbType.UniqueIdentifier, IDP));
+            if (IDM != Guid.Empty)
+            {
+                prm.Add(new Parameter("@MesinID", SqlDbType.UniqueIdentifier, IDM));
+            }
+            prm.Add(new Parameter("@Tgl", SqlDbType.Date, Tgl));
+            prm.Add(new Parameter("@Shift", SqlDbType.Int, Shift));
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.usp_resep_material", prm);
+        }
+
+        public static DataTable GetWIPbyNama(string Nama)
+        {
+            Parameters prm = new Parameters();
+            if (Nama != string.Empty)
+            {
+                prm.Add(new Parameter("@NmMaterial", SqlDbType.VarChar, Nama));
+                return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrik.dbo.vsp_wip_material", prm);
+            }
+            else { return Class.ExecPenjualan.DBToolsJual.DBGetDataTableNoParam("ISAPabrik.dbo.vsp_wip_material"); }
+        }
+
+        public static DataTable GetProsesWIP(Guid IDL)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, IDL));
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.usp_proses_produksi", prm);
+        }
+
+        public static DataTable GetProsesWIP(Guid IDL, string Tipe)
+        {
+            Parameters prm = new Parameters();
+            if (Tipe != string.Empty)
+            {
+                if (IDL != Guid.Empty)
+                {
+                    prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, IDL));
+                    return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.usp_proses_produksi", prm);
+                }
+                else { return Class.ExecPenjualan.DBToolsJual.DBGetDataTableNoParam("ISAPabrikProduksi.dbo.usp_proses_produksi"); }
+            }
+            else { return Class.ExecPenjualan.DBToolsJual.DBGetDataTableNoParam("ISAPabrikProduksi.dbo.usp_proses_produksi_lini"); }
+        }
+
+        public static DataTable GetJamShift(DateTime Tanggal, string Kode, int Shift)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@TglProses", SqlDbType.Date, Tanggal));
+            prm.Add(new Parameter("@Kode", SqlDbType.VarChar, Kode));
+            prm.Add(new Parameter("@Shift", SqlDbType.Int, Shift));
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.vsp_JamShift", prm);
+        }
+
+        public static DataTable GetLine(Guid IDL)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, IDL));
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.usp_lineproduksi_list", prm);
+        }
+
+        public static double GetQtySisaProses(Guid IDM, Guid IDP, Guid IDRow)
+        {
+            DataTable dt = new DataTable();
+            double Hasil = 0;
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, IDRow));
+            prm.Add(new Parameter("@ProsesID", SqlDbType.UniqueIdentifier, IDP));
+            prm.Add(new Parameter("@IDMaterial", SqlDbType.UniqueIdentifier, IDM));
+            dt = Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.usp_sisa_pakai_proses", prm);
+            if (dt.Rows.Count > 0)
+            {
+                Hasil = Convert.ToDouble(dt.Rows[0]["QtySisa"]);
+            }
+            return Hasil;
+        }
+
+        public static DataTable GetHasilProsesWIP(Guid IDM, Guid IDP, Guid IDR, DateTime Tgl, int Shift)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, IDM));
+            prm.Add(new Parameter("@ProsesID", SqlDbType.UniqueIdentifier, IDP));
+            if (IDR != Guid.Empty) { prm.Add(new Parameter("@IDInc", SqlDbType.UniqueIdentifier, IDR)); }
+            prm.Add(new Parameter("@tgl", SqlDbType.Date, Tgl));                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+            prm.Add(new Parameter("@Shift", SqlDbType.Int, Shift));
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.usp_hasil_proses_produksi", prm);
+        }
+
+        public static DataTable GetLiniProsesTo(Guid IDP)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, IDP));
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.usp_lini_produksi_to", prm);
+        }
+
+        public static DataTable GetIOLini(Guid ID)
+        {
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTableByRowID("ISAPabrikProduksi.dbo.usp_lookup_io", ID);
+        }
+        #endregion
+
+        #region Material WIP
+        public static DataTable ViewWIP()
+        {
+            Parameters prm = new Parameters();
+            if (SecurityManager.LiniProduksiRowID != Guid.Empty) { prm.Add(new Parameter("@IDDept", SqlDbType.UniqueIdentifier, SecurityManager.LiniProduksiRowID)); }
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrik.dbo.vsp_wip_material", prm); // gen ora error << iki vsp_wip_material ora usp_wip_material
+        }
+
+        public static DataTable ViewWIPAlumunium()
+        {
+            Parameters prm = new Parameters();
+            if (SecurityManager.LiniProduksiRowID != Guid.Empty) { prm.Add(new Parameter("@IDDept", SqlDbType.UniqueIdentifier, SecurityManager.LiniProduksiRowID)); }
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrik.dbo.usp_wip_materialalumunium", prm);
+        }
+
+        public static DataTable ViewWIPDetail(Guid ID, Guid WC)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, ID));
+            if (WC != Guid.Empty) { prm.Add(new Parameter("@WorkCenter", SqlDbType.UniqueIdentifier, WC)); }
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrik.dbo.vsp_wip_material_detail", prm);
+        }
+
+
+        public static DataTable ViewWIPDetail(Guid ID, Guid WC, DateTime TglProses)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, ID));
+            if (WC != Guid.Empty) { prm.Add(new Parameter("@WorkCenter", SqlDbType.UniqueIdentifier, WC)); }
+            prm.Add(new Parameter("@TGLUSER", SqlDbType.DateTime, TglProses));
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrik.dbo.vsp_wip_material_detail_dgHistory", prm);
+        }
+
+        public static DataTable ViewWIPDetailHistory(Guid ID, Guid WC)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, ID));
+            if (WC != Guid.Empty) { prm.Add(new Parameter("@WorkCenter", SqlDbType.UniqueIdentifier, WC)); }
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrik.dbo.vsp_wip_material_detail_history", prm);
+        }
+
+        public static void insertWipHistory(Guid RowID) 
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, RowID));
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryParam("ISAPabrik.dbo.usp_wiphistory_insert", prm);
+        }
+
+        public static void SaveWIPMaterial(Guid ID, Guid IDHeader, Guid IDMaterial, double Qty, int QtyIsi, double QtyKucu, string Keterangan, Guid IDLini, Guid GolWC, int Tipe)
+        {
+            insertWipHistory(ID);
+            Parameters prm = new Parameters();
+            if (ID == Guid.Empty) { ID = Guid.NewGuid(); }
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, ID));
+            if (IDHeader != Guid.Empty) { prm.Add(new Parameter("@IDMatWIP", SqlDbType.UniqueIdentifier, IDHeader)); }
+            if (IDMaterial != Guid.Empty) { prm.Add(new Parameter("@IDMatBKU", SqlDbType.UniqueIdentifier, IDMaterial)); }
+            if (IDLini != Guid.Empty) { prm.Add(new Parameter("@IDLini", SqlDbType.UniqueIdentifier, IDLini)); }
+            prm.Add(new Parameter("@Qty", SqlDbType.Float, Qty));
+            if (QtyIsi != 0 && IDHeader != Guid.Empty) { prm.Add(new Parameter("@QtyIsi", SqlDbType.Int, QtyIsi)); }
+            if (QtyKucu != 0 && IDHeader != Guid.Empty) { prm.Add(new Parameter("@QtyKucu", SqlDbType.Float, QtyKucu)); }
+            if (GolWC != Guid.Empty && IDHeader != Guid.Empty) { prm.Add(new Parameter("@WC", SqlDbType.UniqueIdentifier, GolWC)); }
+            prm.Add(new Parameter("@Tipe", SqlDbType.TinyInt, Tipe));
+            prm.Add(new Parameter("@Status", SqlDbType.Bit, Convert.ToBoolean(1)));
+            prm.Add(new Parameter("@isUser", SqlDbType.VarChar, SecurityManager.UserInitial));
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryParam("ISAPabrik.dbo.psp_wip_material", prm);
+        }
+
+        public static void SaveWIPMaterialAlumunium(Guid ID, Guid IDHeader, Guid IDMaterial, double Qty, int QtyIsi, double QtyKucu, string Keterangan, Guid IDLini, Guid GolWC, int Tipe)
+        {
+
+            insertWipHistory(ID);
+            Parameters prm = new Parameters();
+            if (ID == Guid.Empty) { ID = Guid.NewGuid(); }
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, ID));
+            if (IDHeader != Guid.Empty) { prm.Add(new Parameter("@IDMatWIP", SqlDbType.UniqueIdentifier, IDHeader)); }
+            if (IDMaterial != Guid.Empty) { prm.Add(new Parameter("@IDMatBKU", SqlDbType.UniqueIdentifier, IDMaterial)); }
+            if (IDLini != Guid.Empty) { prm.Add(new Parameter("@IDLini", SqlDbType.UniqueIdentifier, IDLini)); }
+            prm.Add(new Parameter("@Qty", SqlDbType.Float, Qty));
+            if (QtyIsi != 0 && IDHeader != Guid.Empty) { prm.Add(new Parameter("@QtyIsi", SqlDbType.Int, QtyIsi)); }
+            if (QtyKucu != 0 && IDHeader != Guid.Empty) { prm.Add(new Parameter("@QtyKucu", SqlDbType.Float, QtyKucu)); }
+            if (GolWC != Guid.Empty && IDHeader != Guid.Empty) { prm.Add(new Parameter("@WC", SqlDbType.UniqueIdentifier, GolWC)); }
+            prm.Add(new Parameter("@Tipe", SqlDbType.TinyInt, Tipe));
+            prm.Add(new Parameter("@Status", SqlDbType.Bit, Convert.ToBoolean(1)));
+            prm.Add(new Parameter("@isUser", SqlDbType.VarChar, SecurityManager.UserInitial));
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryParam("ISAPabrik.dbo.psp_wip_material_aluminium", prm);
+        }
+
+        public static int CheckWIPBeingUsed(Guid IDWIP)
+        {
+
+            using (Database db = new Database(Class.GlobalVar.DBPabrik))
+            {
+                db.Commands.Add(db.CreateCommand("Usp_WIP_CheckWIPSudahDigunakan"));
+                db.Commands[0].Parameters.Add(new Parameter("@WIPRowID", SqlDbType.UniqueIdentifier, IDWIP));
+                object objRecordYgMenggunakan = db.Commands[0].ExecuteScalar();
+                if (objRecordYgMenggunakan != DBNull.Value && objRecordYgMenggunakan != null)
+                {
+                    return Convert.ToInt32(objRecordYgMenggunakan); 
+                }
+                return 0; 
+            }
+        }
+
+        public static void DelWIPMaterial(Guid ID, Guid IDWIP, Guid IDBKU)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, ID));
+            if (IDWIP == Guid.Empty) { prm.Add(new Parameter("@IDMatWIP", SqlDbType.UniqueIdentifier, IDWIP)); }
+            if (IDBKU == Guid.Empty) { prm.Add(new Parameter("@IDMatBKU", SqlDbType.UniqueIdentifier, IDBKU)); }
+            prm.Add(new Parameter("@isUser", SqlDbType.VarChar, SecurityManager.UserInitial));
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryParam("ISAPabrik.dbo.psp_wip_material_del", prm);
+        }
+
+        
+
+        #endregion
+
+        #region Produksi Work Order
+        public static DataTable GetWorkOrder(Guid ID)
+        {
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTableByRowID("ISAPabrikProduksi.dbo.usp_wo_lini", ID);
+        }
+
+        public static DataTable ViewProsesProd(DateTime fromdate, DateTime todate, Guid IDL)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@fromdate", SqlDbType.Date, fromdate));
+            prm.Add(new Parameter("@todate", SqlDbType.Date, todate));
+            if (IDL != Guid.Empty) { prm.Add(new Parameter("@IDLini", SqlDbType.UniqueIdentifier, IDL)); }
+            //edit SA
+            prm.Add(new Parameter("@IsUser", SqlDbType.VarChar, SecurityManager.UserID));
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.vsp_hpwo_header", prm);
+        }
+
+        public static DataTable ViewProsesProd(DateTime fromdate, DateTime todate, Guid IDL, int flagFinishing)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@fromdate", SqlDbType.Date, fromdate));
+            prm.Add(new Parameter("@todate", SqlDbType.Date, todate));
+            if (IDL != Guid.Empty) { prm.Add(new Parameter("@IDLini", SqlDbType.UniqueIdentifier, IDL)); }
+            prm.Add(new Parameter("@IsUser", SqlDbType.VarChar, SecurityManager.UserID));
+            prm.Add(new Parameter("@flagFinishing", SqlDbType.Int, flagFinishing));
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.vsp_hpwo_header", prm);
+        }
+
+        public static DataTable ViewProsesProdMould(DateTime fromdate, DateTime todate, string NmMould)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@fromdate", SqlDbType.Date, fromdate));
+            prm.Add(new Parameter("@todate", SqlDbType.Date, todate));
+            if (NmMould != string.Empty) { prm.Add(new Parameter("@NmMould", SqlDbType.VarChar, NmMould)); }
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.vsp_hpwo_mould", prm);
+        }
+
+        public static DataTable ViewProsesProdDetail(Guid ID)
+        {
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTableByRowID("ISAPabrikProduksi.dbo.vsp_hpwo_detail", ID);
+        }
+
+        public static DataTable ViewProsesProdDetailNext(Guid ID)
+        {
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTableByRowID("ISAPabrikProduksi.dbo.vsp_hpwo_detail_next", ID);
+        }
+
+        public static DataTable ViewProsesProdPenunjang(Guid ID)
+        {
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTableByRowID("ISAPabrikProduksi.dbo.vsp_hpwo_penunjang", ID);
+        }
+
+        public static DataTable ViewProsesProdDetailK(Guid ID)
+        {
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTableByRowID("ISAPabrikProduksi.dbo.vsp_hpwok_detail", ID);
+        }
+
+        public static DataTable ViewProsesProdDetailKNext(Guid ID)
+        {
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTableByRowID("ISAPabrikProduksi.dbo.vsp_hpwok_detail_next", ID);
+        }
+
+        public static DataTable ViewTotalMatPakai(Guid ID)
+        {
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTableByRowID("ISAPabrikProduksi.dbo.vsp_hpwok_total_detail", ID);
+        }
+
+        public static void SaveHasilProduksi(Guid ID, string NoProses, DateTime TglProses, Guid IDProses, Guid IDLini, string Keterangan, string Jenis, int Shift, Guid IDMesin, int MP, string Opr, string JamAwal, string JamAkhir, int Ke)
+        {
+            Parameters prm = new Parameters();
+            if (ID == Guid.Empty) { ID = Guid.NewGuid(); }
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, ID));
+            prm.Add(new Parameter("@NoProses", SqlDbType.VarChar, NoProses));
+            prm.Add(new Parameter("@TglProses", SqlDbType.Date, TglProses));
+            prm.Add(new Parameter("@IDProses", SqlDbType.UniqueIdentifier, IDProses));
+            prm.Add(new Parameter("@IDLini", SqlDbType.UniqueIdentifier, IDLini));
+            prm.Add(new Parameter("@TypeProses", SqlDbType.VarChar, Jenis));
+            prm.Add(new Parameter("@ProsesKe", SqlDbType.Int, Ke));
+            prm.Add(new Parameter("@Shift", SqlDbType.Int, Shift));
+            prm.Add(new Parameter("@IDMesin", SqlDbType.UniqueIdentifier, IDMesin));
+            prm.Add(new Parameter("@JamAwal", SqlDbType.Time, Convert.ToDateTime(JamAwal).ToString("HH:mm")));
+            prm.Add(new Parameter("@JamAkhir", SqlDbType.Time, Convert.ToDateTime(JamAkhir).ToString("HH:mm"))); 
+            prm.Add(new Parameter("@MP", SqlDbType.Int, MP));
+            prm.Add(new Parameter("@Opr", SqlDbType.VarChar, Opr));
+            prm.Add(new Parameter("@Keterangan", SqlDbType.VarChar, Keterangan));
+            prm.Add(new Parameter("@isUser", SqlDbType.VarChar, SecurityManager.UserInitial));
+           //prm.Add(new Parameter("@Approved", SqlDbType.VarChar, Approved));
+            prm.Add(new Parameter("@Approvedby", SqlDbType.VarChar, SecurityManager.UserInitial)); prm.Add(new Parameter("@ApprovedDate", SqlDbType.Date, TglProses));
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryParam("ISAPabrikProduksi.dbo.psp_hpwo_header", prm);
+        }
+
+        public static void SaveHasilProduksiD(Guid ID, Guid IDHPWO, Guid IDWODetail, Guid IDMaterial, Guid IDResep, double Qty, double SPOk, double SPKropos, double SPSeting, string Keterangan, bool fProd)
+        {
+            Parameters prm = new Parameters();
+            if (ID == Guid.Empty) { ID = Guid.NewGuid(); }
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, ID));
+            prm.Add(new Parameter("@IDHPWO", SqlDbType.UniqueIdentifier, IDHPWO));
+            prm.Add(new Parameter("@IDMaterial", SqlDbType.UniqueIdentifier, IDMaterial));
+            if (IDWODetail != Guid.Empty) { prm.Add(new Parameter("@IDWODetail", SqlDbType.UniqueIdentifier, IDWODetail)); }
+            if (IDResep != Guid.Empty) { prm.Add(new Parameter("@IDResep", SqlDbType.UniqueIdentifier, IDResep)); }
+            prm.Add(new Parameter("@Qty", SqlDbType.Float, Qty));
+            prm.Add(new Parameter("@SPOk", SqlDbType.Float, SPOk));
+            prm.Add(new Parameter("@SPKropos", SqlDbType.Float, SPKropos));
+            prm.Add(new Parameter("@SPSeting", SqlDbType.Float, SPSeting));
+            prm.Add(new Parameter("@Keterangan", SqlDbType.VarChar, Keterangan));
+            prm.Add(new Parameter("@fProd", SqlDbType.Bit, fProd));
+            prm.Add(new Parameter("@isUser", SqlDbType.VarChar, SecurityManager.UserInitial));
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryParam("ISAPabrikProduksi.dbo.psp_hpwo_detail", prm);
+        }
+
+        public static void SaveHasilProduksiDK(Guid ID, Guid IDHPWO, Guid IDHPWOD, Guid IDHasil, Guid IDMaterial, double Qty, double Sisa, double SP, double SisaPakai, string Keterangan, int Tipe)
+        {
+            Parameters prm = new Parameters();
+            if (ID == Guid.Empty) { ID = Guid.NewGuid(); }
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, ID));
+            prm.Add(new Parameter("@IDHPWO", SqlDbType.UniqueIdentifier, IDHPWO));
+            prm.Add(new Parameter("@IDMaterial", SqlDbType.UniqueIdentifier, IDMaterial));
+            if (IDHPWOD != Guid.Empty) { prm.Add(new Parameter("@IDHPWOD", SqlDbType.UniqueIdentifier, IDHPWOD)); }
+            if (IDHasil != Guid.Empty) { prm.Add(new Parameter("@IDHasil", SqlDbType.UniqueIdentifier, IDHasil)); }
+            prm.Add(new Parameter("@Qty", SqlDbType.Float, Qty));
+            prm.Add(new Parameter("@SP", SqlDbType.Float, SP));
+            prm.Add(new Parameter("@Sisa", SqlDbType.Float, Sisa));
+            prm.Add(new Parameter("@SisaPakai", SqlDbType.Float, SisaPakai)); 
+            prm.Add(new Parameter("@TipeItem", SqlDbType.TinyInt, Tipe));
+            prm.Add(new Parameter("@Keterangan", SqlDbType.VarChar, Keterangan));
+            prm.Add(new Parameter("@isUser", SqlDbType.VarChar, SecurityManager.UserInitial));
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryParam("ISAPabrikProduksi.dbo.psp_hpwok_detail", prm);
+        }
+
+        public static void SisaMaterial(Guid IDHPWO)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@IDHPWO", SqlDbType.UniqueIdentifier, IDHPWO));
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryParam("ISAPabrikProduksi.dbo.usp_sisa_material", prm);
+        }
+
+        public static void DelHasilProduksi(Guid ID, string Jenis)
+        {
+            if (Jenis == "H")
+            {
+                Class.ExecPenjualan.DBToolsJual.DBNonQueryByRowID("ISAPabrikProduksi.dbo.psp_hpwo_header_del", ID);
+            }
+            else if (Jenis == "D")
+            {
+                Class.ExecPenjualan.DBToolsJual.DBNonQueryByRowID("ISAPabrikProduksi.dbo.psp_hpwo_detail_del", ID);
+            }
+            else if (Jenis == "K")
+            {
+                Class.ExecPenjualan.DBToolsJual.DBNonQueryByRowID("ISAPabrikProduksi.dbo.psp_hpwok_detail_del", ID);
+            }
+        }
+
+        public static void SaveHasilQC(Guid QCRowID, DateTime TglProses, int Shift, Guid IDMaterial, Guid IDLiniProduksi, Guid IDProses, double QtyCek, double QtySP, double SPKeropos, double SPMeleset, double QtyOK, string Operator, string Ket)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, QCRowID));
+            prm.Add(new Parameter("@TglProses", SqlDbType.Date, TglProses));
+            prm.Add(new Parameter("@Shift", SqlDbType.Int, Shift));
+            prm.Add(new Parameter("@IDMaterial", SqlDbType.UniqueIdentifier, IDMaterial));
+            prm.Add(new Parameter("@IDLiniProduksi", SqlDbType.UniqueIdentifier, IDLiniProduksi));
+            prm.Add(new Parameter("@IDProses", SqlDbType.UniqueIdentifier, IDProses));
+            prm.Add(new Parameter("@TQtyCek", SqlDbType.Float, QtyCek));
+            prm.Add(new Parameter("@QtySP", SqlDbType.Float, QtySP));
+            prm.Add(new Parameter("@SPKeropos", SqlDbType.Float, SPKeropos));
+            prm.Add(new Parameter("@SPMeleset", SqlDbType.Float, SPMeleset));
+            prm.Add(new Parameter("@QtyOK", SqlDbType.Float, QtyOK));
+            prm.Add(new Parameter("@Operator", SqlDbType.VarChar, Operator));
+            prm.Add(new Parameter("@Keterangan", SqlDbType.VarChar, Ket));
+            prm.Add(new Parameter("@IsUser", SqlDbType.VarChar, SecurityManager.UserInitial));
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryParam("ISAPabrikProduksi.dbo.psp_machining_insert_QC", prm);                                       
+        }
+        #endregion
+
+        #region Kuncian
+
+        public static DataTable MaxInputProcessAllumunium(string type)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@lookuptype", SqlDbType.VarChar, type));
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikDb.dbo.usp_Tanggal_Kunci", prm);
+        }
+
+        #endregion
+
+        #region Laporan Produksi
+        public static DataTable HasilProsesProd(DateTime fromdate, DateTime todate, Guid IDL, Guid IDP, Guid IDMs, Guid IDM, string Jenis, string RDP, string AllMs)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@fromdate", SqlDbType.Date, fromdate));
+            prm.Add(new Parameter("@todate", SqlDbType.Date, todate));
+            if (IDL != Guid.Empty) { prm.Add(new Parameter("@IDLini", SqlDbType.UniqueIdentifier, IDL)); }
+            if (IDP != Guid.Empty) { prm.Add(new Parameter("@ProsesID", SqlDbType.UniqueIdentifier, IDP)); }
+            if (IDM != Guid.Empty) { prm.Add(new Parameter("@MatID", SqlDbType.UniqueIdentifier, IDM)); }
+            if (Jenis == "H")
+            {
+                if (RDP == "P1")
+                {
+                    if (AllMs != string.Empty)
+                    {
+                        if (IDMs != Guid.Empty) { prm.Add(new Parameter("@MesinID", SqlDbType.UniqueIdentifier, IDMs)); }
+                    }
+                    return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_rekap_hasil_proses", prm);
+                }
+                else if (RDP == "P4") { return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_rekap_hasilproduksi_MESIN", prm); }
+                else if (RDP == "P5") { return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_rekap_hasilproduksi_CAT", prm); }
+                else if (RDP == "H") { return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_rekap_hasil_proses", prm); }
+                else { return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_hasil_proses", prm); }
+            }
+            else if (Jenis == "P")
+            {
+                return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_hasil_pakai", prm);
+            }
+            else
+            {
+                //if (RDP == "P5") { return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_rekap_hasilproduksi_CAT", prm); }
+                //else
+                    return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_hasil_proses", prm);
+            }
+        }
+
+        public static DataTable PakaiProduksi(DateTime fromdate, DateTime todate, Guid IDL, Guid IDP, string RDP, string Shift)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@fromdate", SqlDbType.Date, fromdate));
+            prm.Add(new Parameter("@todate", SqlDbType.Date, todate));
+            if (IDL != Guid.Empty) { prm.Add(new Parameter("@IDLini", SqlDbType.UniqueIdentifier, IDL)); }
+            if (IDP != Guid.Empty) { prm.Add(new Parameter("@ProsesID", SqlDbType.UniqueIdentifier, IDP)); }
+            if (RDP == "R")
+            {
+                return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_rekap_produksi_lini", prm);
+            }
+            else if (RDP == "D")
+            {
+                if (Shift == string.Empty)
+                {
+                    return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_rekap_detail_produksi_lini", prm);
+                }
+                else
+                {
+                    return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_rekap_detail_produksi_shift", prm);
+                }
+            }
+            else
+            {
+                if (RDP == "P1")
+                {
+                    return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_lap_produksi_mesin", prm);
+                }
+                else if (RDP == "P2")
+                {
+                    return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_rekap_hasil_produksi", prm);
+                }
+                else if (RDP == "P4")
+                {
+                    return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_hasil_pakai_produksi", prm);
+                }
+                else //if (RDP == "P3")
+                {
+                    return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_hasil_pakai_produksi", prm);
+                }
+            }
+        }
+
+        public static DataTable ProduksiHarian(DateTime fromdate, DateTime todate, Guid IDL, Guid IDP, string RDP, string Proses)
+        {
+            DataTable dtEmpty = new DataTable();
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@fromdate", SqlDbType.Date, fromdate));
+            prm.Add(new Parameter("@todate", SqlDbType.Date, todate));
+            if (IDL != Guid.Empty) { prm.Add(new Parameter("@IDLini", SqlDbType.UniqueIdentifier, IDL)); }
+            if(Proses != string.Empty)
+                if (IDP != Guid.Empty) { prm.Add(new Parameter("@ProsesID", SqlDbType.UniqueIdentifier, IDP)); }
+            if (RDP == "R")
+            {
+                if (Proses == "P1")
+                {
+                    return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_lap_produksi_mesin", prm);
+                }
+                else if (Proses == "P2")                               
+                {
+                    return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_rekap_produksi_lini", prm);
+                }
+                else if (Proses == "P4")
+                {
+                    return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_rekap_harianproduksi_MESIN", prm);
+                }
+                else if (Proses == "P5")
+                {
+                    return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_rekap_harianproduksi_CAT", prm);
+                }
+                else { return dtEmpty; }
+            }
+            else if (RDP == "D")
+            {
+                return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_lap_produksi_lini", prm);
+            }
+            else { return dtEmpty; }
+        }
+
+        public static DataTable RekapProduksi(DateTime fromdate, DateTime todate, Guid IDL)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@fromdate", SqlDbType.Date, fromdate));
+            prm.Add(new Parameter("@todate", SqlDbType.Date, todate));
+            if (IDL != Guid.Empty) { prm.Add(new Parameter("@IDLini", SqlDbType.UniqueIdentifier, IDL)); }
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_pivot_stok_produksi", prm);
+            //return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_rekap_stok_produksi", prm);
+            //return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_lap_produksi_lini", prm);
+        }
+        
+        public static DataTable StokProduksi(DateTime fromdate, DateTime todate, Guid IDP)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@fromdate", SqlDbType.Date, fromdate));
+            prm.Add(new Parameter("@todate", SqlDbType.Date, todate));
+            if (IDP != Guid.Empty) { prm.Add(new Parameter("@IDProses", SqlDbType.UniqueIdentifier, IDP)); }
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_stok_produksi_lini", prm);
+        }
+
+        public static DataTable KartuStokProduksi(DateTime fromdate, DateTime todate, Guid IDP)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@fromdate", SqlDbType.Date, fromdate));
+            prm.Add(new Parameter("@todate", SqlDbType.Date, todate));
+            if (IDP != Guid.Empty) { prm.Add(new Parameter("@IDProses", SqlDbType.UniqueIdentifier, IDP)); }
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_kartu_stok_produksi_lini", prm);
+        }
+
+        public static DataTable CetakBKBIO(Guid ID, string Jenis)
+        {
+            if(Jenis=="BKB")
+                return Class.ExecPenjualan.DBToolsJual.DBGetDataTableByRowID("ISAPabrikProduksi.dbo.rsp_cetak_bkb", ID);
+            else
+                return Class.ExecPenjualan.DBToolsJual.DBGetDataTableByRowID("ISAPabrikProduksi.dbo.rsp_cetak_io", ID);
+        }
+        #endregion
+
+        #region Kirim Proses
+        public static DataTable ViewKirimProses(DateTime fromdate, DateTime todate, Guid IDL)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@fromdate", SqlDbType.Date, fromdate));
+            prm.Add(new Parameter("@todate", SqlDbType.Date, todate));
+            if (IDL != Guid.Empty) { prm.Add(new Parameter("@IDLini", SqlDbType.UniqueIdentifier, IDL)); }
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.vsp_kirim_header", prm);
+        }
+
+        public static DataTable ViewKirimProsesDetail(Guid ID)
+        {
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTableByRowID("ISAPabrikProduksi.dbo.vsp_kirim_detail", ID);
+        }
+
+        public static void KirimHasilProduksiLini(Guid IDHeader, Guid HeaderID, Guid IDProses)
+        {
+            Parameters prm = new Parameters();
+            if (HeaderID != Guid.Empty)
+            {
+                HeaderID = Guid.NewGuid();
+                prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, IDHeader));
+                prm.Add(new Parameter("@HeaderID", SqlDbType.VarChar, HeaderID));
+                prm.Add(new Parameter("@ProsesID", SqlDbType.UniqueIdentifier, IDProses));
+                prm.Add(new Parameter("@isUser", SqlDbType.VarChar, SecurityManager.UserInitial));
+                Class.ExecPenjualan.DBToolsJual.DBNonQueryParam("ISAPabrikProduksi.dbo.usp_kirim_hasil_proses_lini", prm);
+            }
+        }
+
+        public static void SaveKirimWIPProduksiLini(Guid ID, string NoKirim, DateTime TglKirim, Guid IDP, Guid IDLDr, Guid IDLKe, string Keterangan, int Jenis, Guid IDL)
+        {
+            Parameters prm = new Parameters();
+            if (ID == Guid.Empty) { ID = Guid.NewGuid(); }
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, ID));
+            prm.Add(new Parameter("@NoKirim", SqlDbType.VarChar, NoKirim));
+            prm.Add(new Parameter("@TglKirim", SqlDbType.Date, TglKirim));
+            prm.Add(new Parameter("@IDProses", SqlDbType.UniqueIdentifier, IDP));
+            prm.Add(new Parameter("@IDLiniDari", SqlDbType.UniqueIdentifier, IDLDr));
+            prm.Add(new Parameter("@IDLiniKe", SqlDbType.UniqueIdentifier, IDLKe));
+            prm.Add(new Parameter("@Keterangan", SqlDbType.VarChar, Keterangan));
+            prm.Add(new Parameter("@TypeKirim", SqlDbType.TinyInt, Jenis));
+            prm.Add(new Parameter("@isUser", SqlDbType.VarChar, SecurityManager.UserInitial));
+            prm.Add(new Parameter("@LiniID", SqlDbType.UniqueIdentifier, IDL));
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryParam("ISAPabrikProduksi.dbo.psp_kirimhasil_header", prm);
+        }
+
+        public static void SaveKirimWIPProdLiniDetail(Guid IDD, Guid IDH, Guid IDIOD, Guid IDMK, Guid IDMT, double QtyK, double QtyT, string Keterangan, string JnsDetail, string KodeCetak)
+        {
+            Parameters prm = new Parameters();
+            if (IDD == Guid.Empty) { IDD = Guid.NewGuid(); }
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, IDD));
+            prm.Add(new Parameter("@IDHeader", SqlDbType.UniqueIdentifier, IDH));
+            if (IDIOD != Guid.Empty)
+            {
+                prm.Add(new Parameter("@IDMintaID", SqlDbType.UniqueIdentifier, IDIOD));
+            }
+            if (IDMK != Guid.Empty && IDMT == Guid.Empty)
+            {
+                prm.Add(new Parameter("@IDMaterial", SqlDbType.UniqueIdentifier, IDMK));
+            }
+            if (IDMT != Guid.Empty)
+            {
+                prm.Add(new Parameter("@IDMaterial", SqlDbType.UniqueIdentifier, IDMT));
+            }
+            prm.Add(new Parameter("@QtyKirim", SqlDbType.Float, QtyK));
+            prm.Add(new Parameter("@QtyAku", SqlDbType.Float, QtyT));
+            if (JnsDetail != string.Empty) prm.Add(new Parameter("@JnsDetail", SqlDbType.VarChar, JnsDetail));
+            if (KodeCetak != string.Empty) prm.Add(new Parameter("@KodeCetak", SqlDbType.VarChar, KodeCetak));
+            prm.Add(new Parameter("@Keterangan", SqlDbType.VarChar, Keterangan));
+            prm.Add(new Parameter("@isUser", SqlDbType.VarChar, SecurityManager.UserInitial));
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryParam("ISAPabrikProduksi..psp_kirimhasil_detail", prm);
+        }
+
+        public static void DelKirimWIPLini(Guid ID)
+        {
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryByRowID("ISAPabrikProduksi.dbo.psp_kirimhasil_header_del", ID);
+        }
+
+        public static void DelKirimWIPLiniDetail(Guid ID)
+        {
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryByRowID("ISAPabrikProduksi.dbo.psp_kirimhasil_detail_del", ID);
+        }
+
+        public static void DelKirimWIPLiniDetailQC(Guid ID)
+        {
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryByRowID("ISAPabrikProduksi..psp_kirimhasil_detail_delQC", ID);
+        }
+
+        public static DataTable ViewIO(DateTime fromdate, DateTime todate)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@fromdate", SqlDbType.Date, fromdate));
+            prm.Add(new Parameter("@todate", SqlDbType.Date, todate));
+            prm.Add(new Parameter("@IsUser", SqlDbType.VarChar, SecurityManager.UserID));
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.vsp_io_header", prm);
+        }
+
+        public static DataTable ViewIODetail(Guid ID)
+        {
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTableByRowID("ISAPabrikProduksi.dbo.vsp_io_detail", ID);
+        }
+        
+        public static void SaveIOLini(Guid ID, string NoKirim, DateTime TglKirim, Guid IDLDr, Guid IDLKe, string Keterangan)
+        {
+            Parameters prm = new Parameters();
+            if (ID == Guid.Empty) { ID = Guid.NewGuid(); }
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, ID));
+            prm.Add(new Parameter("@NoOrder", SqlDbType.VarChar, NoKirim));
+            prm.Add(new Parameter("@TglOrder", SqlDbType.Date, TglKirim));
+            prm.Add(new Parameter("@IDLiniDr", SqlDbType.UniqueIdentifier, IDLDr));
+            prm.Add(new Parameter("@IDLiniKe", SqlDbType.UniqueIdentifier, IDLKe));
+            prm.Add(new Parameter("@Keterangan", SqlDbType.VarChar, Keterangan));
+            prm.Add(new Parameter("@isUser", SqlDbType.VarChar, SecurityManager.UserInitial));
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryParam("ISAPabrikProduksi.dbo.psp_io_header", prm);
+        }
+
+        public static void SaveIOLiniDetail(Guid IDD, Guid IDH, Guid IDM, double Qty, string Keterangan)
+        {
+            Parameters prm = new Parameters();
+            if (IDD == Guid.Empty) { IDD = Guid.NewGuid(); }
+            prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, IDD));
+            prm.Add(new Parameter("@IDHeader", SqlDbType.UniqueIdentifier, IDH));
+            prm.Add(new Parameter("@IDMaterial", SqlDbType.UniqueIdentifier, IDM));
+            prm.Add(new Parameter("@Qty", SqlDbType.Float, Qty));
+            prm.Add(new Parameter("@Keterangan", SqlDbType.VarChar, Keterangan));
+            prm.Add(new Parameter("@IsUser", SqlDbType.VarChar, SecurityManager.UserInitial));
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryParam("ISAPabrikProduksi.dbo.psp_io_detail", prm);
+        }
+
+        public static void DelIOLini(Guid ID)
+        {
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryByRowID("ISAPabrikProduksi.dbo.psp_io_header_del", ID);
+        }
+
+        public static void DelIODetail(Guid ID)
+        {
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryByRowID("ISAPabrikProduksi.dbo.psp_io_detail_del", ID);
+        }
+
+        public static DataTable ViewKategoriQC(Guid IDL, Guid RowID)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@LineProduksiRowID", SqlDbType.UniqueIdentifier, IDL));
+            if (RowID != Guid.Empty) { prm.Add(new Parameter("@RowIDKirim", SqlDbType.UniqueIdentifier, RowID)); }
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi..vsp_KategoriQC", prm);
+        }
+
+        public static DataTable LapQCProduksi(DateTime fromdate, DateTime todate, Guid IDK, Guid IDP, Guid IDT, Guid IDM, int KategoriQC)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@fromdate", SqlDbType.Date, fromdate));
+            prm.Add(new Parameter("@todate", SqlDbType.Date, todate));
+            if (IDK != Guid.Empty) { prm.Add(new Parameter("@IDLiniDr", SqlDbType.UniqueIdentifier, IDK)); }
+            //if (IDT != Guid.Empty) { prm.Add(new Parameter("@IDLiniKe", SqlDbType.UniqueIdentifier, IDT)); }
+            if (IDM != Guid.Empty) { prm.Add(new Parameter("@IDMatKrm", SqlDbType.UniqueIdentifier, IDM)); }
+            if (IDP != Guid.Empty) { prm.Add(new Parameter("@IDProses", SqlDbType.UniqueIdentifier, IDP)); }
+            //prm.Add(new Parameter("@Jenis", SqlDbType.Int, Jenis));
+            prm.Add(new Parameter("@KategoriQC", SqlDbType.Int, KategoriQC));
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi..rsp_qc_produksi", prm);
+        }
+        #endregion
+
+        #region Estimasi Produksi
+        public static void SaveEstimasi(Guid ID, string NoEs, DateTime TglEs)
+        {
+            Parameters prm = new Parameters();
+            if (ID == Guid.Empty) { prm.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, ID)); }
+            prm.Add(new Parameter("@NoEs", SqlDbType.VarChar, NoEs));
+            prm.Add(new Parameter("@TglEs", SqlDbType.Date, TglEs));
+            Class.ExecPenjualan.DBToolsJual.DBNonQueryParam("", prm);
+        }
+
+        public static DataTable EstimasiProduksi(DateTime fromdate, DateTime todate, Guid IDP)
+        {
+            Parameters prm = new Parameters();
+            prm.Add(new Parameter("@fromdate", SqlDbType.Date, fromdate));
+            prm.Add(new Parameter("@todate", SqlDbType.Date, todate));
+            if (IDP != Guid.Empty) { prm.Add(new Parameter("@IDProses", SqlDbType.UniqueIdentifier, IDP)); }
+            return Class.ExecPenjualan.DBToolsJual.DBGetDataTable("ISAPabrikProduksi.dbo.rsp_stok_produksi_lini", prm);
+        }
+        #endregion
+    }
+}

@@ -1,0 +1,490 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<?xml-stylesheet href="TracePacket_Default.xsl" type="text/xsl"?>
+<root name="Tracing" description="Tracing description">
+  <tracegroup name="initialization">
+<tracePacket>
+  <businessObject>Ice.Proxy.BO.UserTracingImpl</businessObject>
+  <methodName>GetNewOrGetByID</methodName>
+  <appServerUri>net.tcp://epicorapp/ERPSASS-LIVE/</appServerUri>
+  <returnType>Ice.Tablesets.UserTracingTableset</returnType>
+  <localTime>08/08/2022 07:18:16:0710058 AM</localTime>
+  <threadID>1</threadID>
+  <executionTime total="71" roundTrip="69" channel="0" bpm="0" other="2" />
+  <retries>0</retries>
+  <parameters>
+    <parameter name="UserID" type="System.String"><![CDATA[manager]]></parameter>
+  </parameters>
+</tracePacket>
+<tracePacket>
+  <businessObject>Ice.Proxy.BO.UserTracingImpl</businessObject>
+  <methodName>Update</methodName>
+  <appServerUri>net.tcp://epicorapp/ERPSASS-LIVE/</appServerUri>
+  <returnType>System.Void</returnType>
+  <localTime>08/08/2022 07:18:16:2120476 AM</localTime>
+  <threadID>1</threadID>
+  <executionTime total="68" roundTrip="62" channel="0" bpm="1" other="5" />
+  <retries>0</retries>
+  <parameters>
+    <parameter name="ds" type="Ice.BO.UserTracingDataSet">
+      <UserTracingDataSet xmlns="http://www.epicor.com/Ice/300/BO/UserTracing/UserTracing" />
+    </parameter>
+  </parameters>
+</tracePacket>
+<tracePacket>
+  <businessObject>Ice.Proxy.BO.ReportMonitorImpl</businessObject>
+  <methodName>GetRowsKeepIdleTimeWithBallonInfo</methodName>
+  <appServerUri>net.tcp://epicorapp/ERPSASS-LIVE/</appServerUri>
+  <returnType>Ice.Tablesets.ReportMonitorTableset</returnType>
+  <localTime>08/08/2022 07:18:32:2959497 AM</localTime>
+  <threadID>13</threadID>
+  <executionTime total="120" roundTrip="117" channel="0" bpm="0" other="3" />
+  <retries>0</retries>
+  <parameters>
+    <parameter name="whereClauseSysRptLst" type="System.String"><![CDATA[((PrintDriver='TEXT' AND (AutoAction='PRINT' OR AutoAction='PREVIEW')) OR (PrintDriver='CRYSTAL' AND (AutoAction='PRINT' OR AutoAction='AUTOPRT' OR AutoAction='PREVIEW' OR AutoAction='AUTOPRV')) OR (PrintDriver='EPIFIN' AND (AutoAction='PRINT' OR AutoAction='PREVIEW')) OR (PrintDriver='BARTENDER' AND (AutoAction='AUTOPRT' OR AutoAction='AUTOPRV')) OR (PrintDriver='EDI' AND AutoAction<>'') OR (PrintDriver='SSRS' AND (AutoAction='PREVIEW' OR AutoAction='PRINT') AND LastAction='SSRSREADY')) AND WorkStationID='EDP-3 2']]></parameter>
+    <parameter name="getBallonInfo" type="System.Boolean"><![CDATA[False]]></parameter>
+    <parameter name="whereClauseSysTask" type="System.String"><![CDATA[history = true and startedon > 08/07/2022 and  SubmitUser = 'manager']]></parameter>
+    <parameter name="whereClauseSysTaskLog" type="System.String"><![CDATA[]]></parameter>
+    <parameter name="sysMonitorData" type="System.Data.DataSet">
+      <NewDataSet />
+    </parameter>
+  </parameters>
+</tracePacket>
+<tracePacket>
+  <businessObject>Ice.Proxy.BO.DashBoardImpl</businessObject>
+  <methodName>GetDashboardVersionInTenant</methodName>
+  <appServerUri>net.tcp://epicorapp/ERPSASS-LIVE/</appServerUri>
+  <returnType>System.String</returnType>
+  <localTime>08/08/2022 07:18:59:9194923 AM</localTime>
+  <threadID>1</threadID>
+  <executionTime total="102" roundTrip="100" channel="0" bpm="0" other="2" />
+  <retries>0</retries>
+  <parameters>
+    <parameter name="company" type="System.String"><![CDATA[SASS]]></parameter>
+    <parameter name="productID" type="System.String"><![CDATA[EP]]></parameter>
+    <parameter name="definitionID" type="System.String"><![CDATA[DASHBOARD_SJ]]></parameter>
+  </parameters>
+</tracePacket>
+<tracePacket>
+  <businessObject>Ice.Proxy.BO.DynamicQueryImpl</businessObject>
+  <methodName>GetByID</methodName>
+  <appServerUri>net.tcp://epicorapp/ERPSASS-LIVE/</appServerUri>
+  <returnType>Ice.Tablesets.DynamicQueryTableset</returnType>
+  <localTime>08/08/2022 07:19:00:0325154 AM</localTime>
+  <threadID>1</threadID>
+  <executionTime total="678" roundTrip="570" channel="80" bpm="0" other="28" />
+  <retries>0</retries>
+  <parameters>
+    <parameter name="queryID" type="System.String"><![CDATA[ADS_Shipment]]></parameter>
+  </parameters>
+</tracePacket>
+<tracePacket>
+  <businessObject>Ice.Proxy.BO.DynamicQueryImpl</businessObject>
+  <methodName>GetQueryEmptyResultSet</methodName>
+  <appServerUri>net.tcp://epicorapp/ERPSASS-LIVE/</appServerUri>
+  <returnType>System.Data.DataSet</returnType>
+  <localTime>08/08/2022 07:19:00:7349571 AM</localTime>
+  <threadID>1</threadID>
+  <executionTime total="192" roundTrip="173" channel="0" bpm="0" other="19" />
+  <retries>0</retries>
+  <parameters>
+    <parameter name="queryDS" type="Ice.BO.DynamicQueryDataSet">
+      <DynamicQueryDataSet xmlns="http://www.epicor.com/Ice/300/BO/DynamicQuery/DynamicQuery" />
+    </parameter>
+  </parameters>
+</tracePacket>
+<tracePacket>
+  <businessObject>Ice.Proxy.BO.GenXDataImpl</businessObject>
+  <methodName>GetByID</methodName>
+  <appServerUri>net.tcp://epicorapp/ERPSASS-LIVE/</appServerUri>
+  <returnType>Ice.Tablesets.GenXDataTableset</returnType>
+  <localTime>08/08/2022 07:19:00:9648430 AM</localTime>
+  <threadID>1</threadID>
+  <executionTime total="108" roundTrip="49" channel="58" bpm="0" other="1" />
+  <retries>0</retries>
+  <parameters>
+    <parameter name="company" type="System.String"><![CDATA[SASS]]></parameter>
+    <parameter name="productID" type="System.String"><![CDATA[EP]]></parameter>
+    <parameter name="typeCode" type="System.String"><![CDATA[ProcessCallXReff]]></parameter>
+    <parameter name="cgCCode" type="System.String"><![CDATA[]]></parameter>
+    <parameter name="key1" type="System.String"><![CDATA[ProcessXrefCustom]]></parameter>
+    <parameter name="key2" type="System.String"><![CDATA[]]></parameter>
+    <parameter name="key3" type="System.String"><![CDATA[]]></parameter>
+  </parameters>
+</tracePacket>
+<tracePacket>
+  <businessObject>Ice.Proxy.BO.GenXDataImpl</businessObject>
+  <methodName>GetByID</methodName>
+  <appServerUri>net.tcp://epicorapp/ERPSASS-LIVE/</appServerUri>
+  <returnType>Ice.Tablesets.GenXDataTableset</returnType>
+  <localTime>08/08/2022 07:19:01:1833211 AM</localTime>
+  <threadID>1</threadID>
+  <executionTime total="147" roundTrip="146" channel="0" bpm="0" other="1" />
+  <retries>0</retries>
+  <parameters>
+    <parameter name="company" type="System.String"><![CDATA[SASS]]></parameter>
+    <parameter name="productID" type="System.String"><![CDATA[EP]]></parameter>
+    <parameter name="typeCode" type="System.String"><![CDATA[ProcessCallXReff]]></parameter>
+    <parameter name="cgCCode" type="System.String"><![CDATA[]]></parameter>
+    <parameter name="key1" type="System.String"><![CDATA[ProcessXrefCustom]]></parameter>
+    <parameter name="key2" type="System.String"><![CDATA[]]></parameter>
+    <parameter name="key3" type="System.String"><![CDATA[]]></parameter>
+  </parameters>
+</tracePacket>
+<tracePacket>
+  <businessObject>Ice.Proxy.BO.ReportMonitorImpl</businessObject>
+  <methodName>GetRowsKeepIdleTimeWithBallonInfo</methodName>
+  <appServerUri>net.tcp://epicorapp/ERPSASS-LIVE/</appServerUri>
+  <returnType>Ice.Tablesets.ReportMonitorTableset</returnType>
+  <localTime>08/08/2022 07:19:02:4287320 AM</localTime>
+  <threadID>13</threadID>
+  <executionTime total="60" roundTrip="31" channel="22" bpm="0" other="7" />
+  <retries>0</retries>
+  <parameters>
+    <parameter name="whereClauseSysRptLst" type="System.String"><![CDATA[((PrintDriver='TEXT' AND (AutoAction='PRINT' OR AutoAction='PREVIEW')) OR (PrintDriver='CRYSTAL' AND (AutoAction='PRINT' OR AutoAction='AUTOPRT' OR AutoAction='PREVIEW' OR AutoAction='AUTOPRV')) OR (PrintDriver='EPIFIN' AND (AutoAction='PRINT' OR AutoAction='PREVIEW')) OR (PrintDriver='BARTENDER' AND (AutoAction='AUTOPRT' OR AutoAction='AUTOPRV')) OR (PrintDriver='EDI' AND AutoAction<>'') OR (PrintDriver='SSRS' AND (AutoAction='PREVIEW' OR AutoAction='PRINT') AND LastAction='SSRSREADY')) AND WorkStationID='EDP-3 2']]></parameter>
+    <parameter name="getBallonInfo" type="System.Boolean"><![CDATA[False]]></parameter>
+    <parameter name="whereClauseSysTask" type="System.String"><![CDATA[history = true and startedon > 08/07/2022 and  SubmitUser = 'manager']]></parameter>
+    <parameter name="whereClauseSysTaskLog" type="System.String"><![CDATA[]]></parameter>
+    <parameter name="sysMonitorData" type="System.Data.DataSet">
+      <NewDataSet />
+    </parameter>
+  </parameters>
+</tracePacket>
+<tracePacket>
+  <businessObject>Ice.Proxy.BO.DynamicQueryImpl</businessObject>
+  <methodName>ExecuteByID</methodName>
+  <appServerUri>net.tcp://epicorapp/ERPSASS-LIVE/</appServerUri>
+  <returnType>System.Data.DataSet</returnType>
+  <localTime>08/08/2022 07:19:04:0999777 AM</localTime>
+  <threadID>1</threadID>
+  <executionTime total="207" roundTrip="202" channel="0" bpm="0" other="5" />
+  <retries>0</retries>
+  <parameters>
+    <parameter name="queryID" type="System.String"><![CDATA[UDTC_ListCustomer]]></parameter>
+    <parameter name="executionParams" type="Ice.BO.QueryExecutionDataSet">
+      <QueryExecutionDataSet xmlns="http://www.epicor.com/Ice/300/BO/DynamicQuery/QueryExecution" />
+    </parameter>
+  </parameters>
+</tracePacket>
+<tracePacket>
+  <businessObject>Ice.Proxy.BO.DynamicQueryImpl</businessObject>
+  <methodName>Execute</methodName>
+  <appServerUri>net.tcp://epicorapp/ERPSASS-LIVE/</appServerUri>
+  <returnType>System.Data.DataSet</returnType>
+  <localTime>08/08/2022 07:19:11:4484485 AM</localTime>
+  <threadID>1</threadID>
+  <executionTime total="545" roundTrip="526" channel="0" bpm="0" other="19" />
+  <retries>0</retries>
+  <parameters>
+    <parameter name="queryDS" type="Ice.BO.DynamicQueryDataSet">
+      <DynamicQueryDataSet xmlns="http://www.epicor.com/Ice/300/BO/DynamicQuery/DynamicQuery" />
+    </parameter>
+    <parameter name="executionParams" type="Ice.BO.QueryExecutionDataSet">
+      <QueryExecutionDataSet xmlns="http://www.epicor.com/Ice/300/BO/DynamicQuery/QueryExecution" />
+    </parameter>
+  </parameters>
+  <paramDataSetChanges>
+    <paramDataSet name="queryDS" useDataSetNbr="0">
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="Company"><![CDATA[SASS]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="QueryID"><![CDATA[ADS_Shipment]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="SubQueryID"><![CDATA[71722272-a500-44cd-8ebb-40d684008e6e]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="TableID"><![CDATA[InvcHead1]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="CriteriaID"><![CDATA[75e58416-ac47-405a-9430-9438bd2684dd]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="Seq"><![CDATA[2]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="FieldName"><![CDATA[RefCancelledBy]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="DataType"><![CDATA[int]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="CompOp"><![CDATA[=]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="AndOr"><![CDATA[And]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="Neg"><![CDATA[False]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="LeftP"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="RightP"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="IsConst"><![CDATA[True]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="CriteriaType"><![CDATA[2]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="ToTableID"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="ToFieldName"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="ToDataType"><![CDATA[int]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="RValue"><![CDATA[0]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="ExtSecurity"><![CDATA[False]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="SysRevID"><![CDATA[142734259]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="SysRowID"><![CDATA[3371f4e5-f449-4adb-8e8e-dfc7c6d259ec]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="BitFlag"><![CDATA[0]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="0" colName="RowMod"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="Company"><![CDATA[SASS]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="QueryID"><![CDATA[ADS_Shipment]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="SubQueryID"><![CDATA[71722272-a500-44cd-8ebb-40d684008e6e]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="TableID"><![CDATA[InvcHead1]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="CriteriaID"><![CDATA[cffd6f2c-0866-4141-91c6-da18cfff1333]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="Seq"><![CDATA[1]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="FieldName"><![CDATA[TranDocTypeID]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="DataType"><![CDATA[nvarchar]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="CompOp"><![CDATA[<>]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="AndOr"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="Neg"><![CDATA[False]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="LeftP"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="RightP"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="IsConst"><![CDATA[True]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="CriteriaType"><![CDATA[2]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="ToTableID"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="ToFieldName"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="ToDataType"><![CDATA[nvarchar]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="RValue"><![CDATA[CM-SASS]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="ExtSecurity"><![CDATA[False]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="SysRevID"><![CDATA[142734258]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="SysRowID"><![CDATA[6bb98099-cbe2-4d0d-b564-77b5e7a5f7a1]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="BitFlag"><![CDATA[0]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="1" colName="RowMod"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="Company"><![CDATA[SASS]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="QueryID"><![CDATA[ADS_Shipment]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="SubQueryID"><![CDATA[09c0a1e9-8de0-44cc-9f35-c48749a89dd8]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="TableID"><![CDATA[Customer]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="CriteriaID"><![CDATA[11ea4adb-49ba-4bba-878e-7c4e1bd481fd]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="Seq"><![CDATA[1]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="FieldName"><![CDATA[CustID]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="DataType"><![CDATA[nvarchar]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="CompOp"><![CDATA[=]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="AndOr"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="Neg"><![CDATA[False]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="LeftP"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="RightP"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="IsConst"><![CDATA[True]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="CriteriaType"><![CDATA[0]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="ToTableID"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="ToFieldName"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="ToDataType"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="RValue"><![CDATA[@Customer]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="ExtSecurity"><![CDATA[False]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="SysRevID"><![CDATA[142734257]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="SysRowID"><![CDATA[d753a4b6-10cc-4f70-b6db-b927f24682f3]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="BitFlag"><![CDATA[0]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="2" colName="RowMod"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="Company"><![CDATA[SASS]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="QueryID"><![CDATA[ADS_Shipment]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="SubQueryID"><![CDATA[09c0a1e9-8de0-44cc-9f35-c48749a89dd8]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="TableID"><![CDATA[PartCost]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="CriteriaID"><![CDATA[e93bf3a9-ff31-4e9c-8666-4143df333835]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="Seq"><![CDATA[1]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="FieldName"><![CDATA[CostID]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="DataType"><![CDATA[nvarchar]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="CompOp"><![CDATA[=]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="AndOr"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="Neg"><![CDATA[False]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="LeftP"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="RightP"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="IsConst"><![CDATA[True]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="CriteriaType"><![CDATA[2]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="ToTableID"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="ToFieldName"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="ToDataType"><![CDATA[nvarchar]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="RValue"><![CDATA[1]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="ExtSecurity"><![CDATA[False]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="SysRevID"><![CDATA[142734260]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="SysRowID"><![CDATA[f6291ff3-fdb1-4707-9d30-8d5db1683ca3]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="BitFlag"><![CDATA[0]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="3" colName="RowMod"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="Company"><![CDATA[SASS]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="QueryID"><![CDATA[ADS_Shipment]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="SubQueryID"><![CDATA[09c0a1e9-8de0-44cc-9f35-c48749a89dd8]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="TableID"><![CDATA[ShipHead]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="CriteriaID"><![CDATA[f1638c2e-c4ee-4c50-b699-d3e1049735c7]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="Seq"><![CDATA[2]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="FieldName"><![CDATA[ShipDate]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="DataType"><![CDATA[date]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="CompOp"><![CDATA[<=]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="AndOr"><![CDATA[And]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="Neg"><![CDATA[False]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="LeftP"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="RightP"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="IsConst"><![CDATA[True]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="CriteriaType"><![CDATA[2]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="ToTableID"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="ToFieldName"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="ToDataType"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="RValue"><![CDATA[@EndDate]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="ExtSecurity"><![CDATA[False]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="SysRevID"><![CDATA[142734262]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="SysRowID"><![CDATA[94d35665-7c33-4032-80c7-231f02c72915]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="BitFlag"><![CDATA[0]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="4" colName="RowMod"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="Company"><![CDATA[SASS]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="QueryID"><![CDATA[ADS_Shipment]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="SubQueryID"><![CDATA[09c0a1e9-8de0-44cc-9f35-c48749a89dd8]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="TableID"><![CDATA[ShipHead]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="CriteriaID"><![CDATA[787cbf95-7280-4e38-87a4-e5b6a1cbd5c3]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="Seq"><![CDATA[1]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="FieldName"><![CDATA[ShipDate]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="DataType"><![CDATA[date]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="CompOp"><![CDATA[>=]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="AndOr"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="Neg"><![CDATA[False]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="LeftP"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="RightP"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="IsConst"><![CDATA[True]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="CriteriaType"><![CDATA[2]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="ToTableID"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="ToFieldName"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="ToDataType"><![CDATA[]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="RValue"><![CDATA[@StartDate]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="ExtSecurity"><![CDATA[False]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="SysRevID"><![CDATA[142734261]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="SysRowID"><![CDATA[36c32d21-8c1b-4bbd-b950-fa09c8410ccb]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="BitFlag"><![CDATA[0]]></changedValue>
+      <changedValue tableName="QueryWhereItem" rowState="Added" rowNum="5" colName="RowMod"><![CDATA[]]></changedValue>
+    </paramDataSet>
+    <paramDataSet name="executionParams" useDataSetNbr="0">
+      <changedValue tableName="ExecutionParameter" rowState="Added" rowNum="0" colName="ParameterID"><![CDATA[StartDate]]></changedValue>
+      <changedValue tableName="ExecutionParameter" rowState="Added" rowNum="0" colName="ParameterValue"><![CDATA[2022-08-01T00:00:00]]></changedValue>
+      <changedValue tableName="ExecutionParameter" rowState="Added" rowNum="0" colName="ValueType"><![CDATA[date]]></changedValue>
+      <changedValue tableName="ExecutionParameter" rowState="Added" rowNum="0" colName="IsEmpty"><![CDATA[False]]></changedValue>
+      <changedValue tableName="ExecutionParameter" rowState="Added" rowNum="0" colName="SysRowID"><![CDATA[00000000-0000-0000-0000-000000000000]]></changedValue>
+      <changedValue tableName="ExecutionParameter" rowState="Added" rowNum="0" colName="RowMod"><![CDATA[A]]></changedValue>
+      <changedValue tableName="ExecutionParameter" rowState="Added" rowNum="1" colName="ParameterID"><![CDATA[EndDate]]></changedValue>
+      <changedValue tableName="ExecutionParameter" rowState="Added" rowNum="1" colName="ParameterValue"><![CDATA[2022-08-08T00:00:00]]></changedValue>
+      <changedValue tableName="ExecutionParameter" rowState="Added" rowNum="1" colName="ValueType"><![CDATA[date]]></changedValue>
+      <changedValue tableName="ExecutionParameter" rowState="Added" rowNum="1" colName="IsEmpty"><![CDATA[False]]></changedValue>
+      <changedValue tableName="ExecutionParameter" rowState="Added" rowNum="1" colName="SysRowID"><![CDATA[00000000-0000-0000-0000-000000000000]]></changedValue>
+      <changedValue tableName="ExecutionParameter" rowState="Added" rowNum="1" colName="RowMod"><![CDATA[A]]></changedValue>
+      <changedValue tableName="ExecutionParameter" rowState="Added" rowNum="2" colName="ParameterID"><![CDATA[Customer]]></changedValue>
+      <changedValue tableName="ExecutionParameter" rowState="Added" rowNum="2" colName="ParameterValue"><![CDATA[]]></changedValue>
+      <changedValue tableName="ExecutionParameter" rowState="Added" rowNum="2" colName="ValueType"><![CDATA[nvarchar]]></changedValue>
+      <changedValue tableName="ExecutionParameter" rowState="Added" rowNum="2" colName="IsEmpty"><![CDATA[True]]></changedValue>
+      <changedValue tableName="ExecutionParameter" rowState="Added" rowNum="2" colName="SysRowID"><![CDATA[00000000-0000-0000-0000-000000000000]]></changedValue>
+      <changedValue tableName="ExecutionParameter" rowState="Added" rowNum="2" colName="RowMod"><![CDATA[A]]></changedValue>
+    </paramDataSet>
+  </paramDataSetChanges>
+</tracePacket>
+<tracePacket>
+  <businessObject>Ice.Proxy.BO.ReportMonitorImpl</businessObject>
+  <methodName>GetRowsKeepIdleTimeWithBallonInfo</methodName>
+  <appServerUri>net.tcp://epicorapp/ERPSASS-LIVE/</appServerUri>
+  <returnType>Ice.Tablesets.ReportMonitorTableset</returnType>
+  <localTime>08/08/2022 07:19:32:5047067 AM</localTime>
+  <threadID>13</threadID>
+  <executionTime total="29" roundTrip="26" channel="0" bpm="0" other="3" />
+  <retries>0</retries>
+  <parameters>
+    <parameter name="whereClauseSysRptLst" type="System.String"><![CDATA[((PrintDriver='TEXT' AND (AutoAction='PRINT' OR AutoAction='PREVIEW')) OR (PrintDriver='CRYSTAL' AND (AutoAction='PRINT' OR AutoAction='AUTOPRT' OR AutoAction='PREVIEW' OR AutoAction='AUTOPRV')) OR (PrintDriver='EPIFIN' AND (AutoAction='PRINT' OR AutoAction='PREVIEW')) OR (PrintDriver='BARTENDER' AND (AutoAction='AUTOPRT' OR AutoAction='AUTOPRV')) OR (PrintDriver='EDI' AND AutoAction<>'') OR (PrintDriver='SSRS' AND (AutoAction='PREVIEW' OR AutoAction='PRINT') AND LastAction='SSRSREADY')) AND WorkStationID='EDP-3 2']]></parameter>
+    <parameter name="getBallonInfo" type="System.Boolean"><![CDATA[False]]></parameter>
+    <parameter name="whereClauseSysTask" type="System.String"><![CDATA[history = true and startedon > 08/07/2022 and  SubmitUser = 'manager']]></parameter>
+    <parameter name="whereClauseSysTaskLog" type="System.String"><![CDATA[]]></parameter>
+    <parameter name="sysMonitorData" type="System.Data.DataSet">
+      <NewDataSet />
+    </parameter>
+  </parameters>
+</tracePacket>
+<tracePacket>
+  <businessObject>Ice.Proxy.BO.DashBoardImpl</businessObject>
+  <methodName>GetDashboardVersionInTenant</methodName>
+  <appServerUri>net.tcp://epicorapp/ERPSASS-LIVE/</appServerUri>
+  <returnType>System.String</returnType>
+  <localTime>08/08/2022 07:20:01:4058474 AM</localTime>
+  <threadID>1</threadID>
+  <executionTime total="42" roundTrip="41" channel="0" bpm="0" other="1" />
+  <retries>0</retries>
+  <parameters>
+    <parameter name="company" type="System.String"><![CDATA[SASS]]></parameter>
+    <parameter name="productID" type="System.String"><![CDATA[EP]]></parameter>
+    <parameter name="definitionID" type="System.String"><![CDATA[DASHBOARD_SJ]]></parameter>
+  </parameters>
+</tracePacket>
+<tracePacket>
+  <businessObject>Ice.Proxy.BO.ReportMonitorImpl</businessObject>
+  <methodName>GetRowsKeepIdleTimeWithBallonInfo</methodName>
+  <appServerUri>net.tcp://epicorapp/ERPSASS-LIVE/</appServerUri>
+  <returnType>Ice.Tablesets.ReportMonitorTableset</returnType>
+  <localTime>08/08/2022 07:20:02:5530255 AM</localTime>
+  <threadID>13</threadID>
+  <executionTime total="41" roundTrip="41" channel="0" bpm="0" other="0" />
+  <retries>0</retries>
+  <parameters>
+    <parameter name="whereClauseSysRptLst" type="System.String"><![CDATA[((PrintDriver='TEXT' AND (AutoAction='PRINT' OR AutoAction='PREVIEW')) OR (PrintDriver='CRYSTAL' AND (AutoAction='PRINT' OR AutoAction='AUTOPRT' OR AutoAction='PREVIEW' OR AutoAction='AUTOPRV')) OR (PrintDriver='EPIFIN' AND (AutoAction='PRINT' OR AutoAction='PREVIEW')) OR (PrintDriver='BARTENDER' AND (AutoAction='AUTOPRT' OR AutoAction='AUTOPRV')) OR (PrintDriver='EDI' AND AutoAction<>'') OR (PrintDriver='SSRS' AND (AutoAction='PREVIEW' OR AutoAction='PRINT') AND LastAction='SSRSREADY')) AND WorkStationID='EDP-3 2']]></parameter>
+    <parameter name="getBallonInfo" type="System.Boolean"><![CDATA[False]]></parameter>
+    <parameter name="whereClauseSysTask" type="System.String"><![CDATA[history = true and startedon > 08/07/2022 and  SubmitUser = 'manager']]></parameter>
+    <parameter name="whereClauseSysTaskLog" type="System.String"><![CDATA[]]></parameter>
+    <parameter name="sysMonitorData" type="System.Data.DataSet">
+      <NewDataSet />
+    </parameter>
+  </parameters>
+</tracePacket>
+<tracePacket>
+  <businessObject>Ice.Proxy.BO.ReportMonitorImpl</businessObject>
+  <methodName>GetRowsKeepIdleTimeWithBallonInfo</methodName>
+  <appServerUri>net.tcp://epicorapp/ERPSASS-LIVE/</appServerUri>
+  <returnType>Ice.Tablesets.ReportMonitorTableset</returnType>
+  <localTime>08/08/2022 07:20:32:6010089 AM</localTime>
+  <threadID>13</threadID>
+  <executionTime total="20" roundTrip="17" channel="0" bpm="0" other="3" />
+  <retries>0</retries>
+  <parameters>
+    <parameter name="whereClauseSysRptLst" type="System.String"><![CDATA[((PrintDriver='TEXT' AND (AutoAction='PRINT' OR AutoAction='PREVIEW')) OR (PrintDriver='CRYSTAL' AND (AutoAction='PRINT' OR AutoAction='AUTOPRT' OR AutoAction='PREVIEW' OR AutoAction='AUTOPRV')) OR (PrintDriver='EPIFIN' AND (AutoAction='PRINT' OR AutoAction='PREVIEW')) OR (PrintDriver='BARTENDER' AND (AutoAction='AUTOPRT' OR AutoAction='AUTOPRV')) OR (PrintDriver='EDI' AND AutoAction<>'') OR (PrintDriver='SSRS' AND (AutoAction='PREVIEW' OR AutoAction='PRINT') AND LastAction='SSRSREADY')) AND WorkStationID='EDP-3 2']]></parameter>
+    <parameter name="getBallonInfo" type="System.Boolean"><![CDATA[False]]></parameter>
+    <parameter name="whereClauseSysTask" type="System.String"><![CDATA[history = true and startedon > 08/07/2022 and  SubmitUser = 'manager']]></parameter>
+    <parameter name="whereClauseSysTaskLog" type="System.String"><![CDATA[]]></parameter>
+    <parameter name="sysMonitorData" type="System.Data.DataSet">
+      <NewDataSet />
+    </parameter>
+  </parameters>
+</tracePacket>
+<tracePacket>
+  <businessObject>Ice.Proxy.BO.UserTracingImpl</businessObject>
+  <methodName>GetNewOrGetByID</methodName>
+  <appServerUri>net.tcp://epicorapp/ERPSASS-LIVE/</appServerUri>
+  <returnType>Ice.Tablesets.UserTracingTableset</returnType>
+  <localTime>08/08/2022 07:20:56:2664577 AM</localTime>
+  <threadID>1</threadID>
+  <executionTime total="41" roundTrip="28" channel="11" bpm="0" other="2" />
+  <retries>0</retries>
+  <parameters>
+    <parameter name="UserID" type="System.String"><![CDATA[manager]]></parameter>
+  </parameters>
+</tracePacket>
+<tracePacket>
+  <businessObject>Ice.Proxy.BO.UserTracingImpl</businessObject>
+  <methodName>Update</methodName>
+  <appServerUri>net.tcp://epicorapp/ERPSASS-LIVE/</appServerUri>
+  <returnType>System.Void</returnType>
+  <localTime>08/08/2022 07:20:56:3080200 AM</localTime>
+  <threadID>1</threadID>
+  <executionTime total="22" roundTrip="14" channel="0" bpm="1" other="7" />
+  <retries>0</retries>
+  <parameters>
+    <parameter name="ds" type="Ice.BO.UserTracingDataSet">
+      <UserTracingDataSet xmlns="http://www.epicor.com/Ice/300/BO/UserTracing/UserTracing">
+        <UserTracing>
+          <UserID>manager</UserID>
+          <AssemblyReflector>Off</AssemblyReflector>
+          <BitFlagViewWatcher>Off</BitFlagViewWatcher>
+          <Catch>0</Catch>
+          <CustomContext>Off</CustomContext>
+          <DataTrace>false</DataTrace>
+          <DataTraceCCDataSet>false</DataTraceCCDataSet>
+          <DataTraceFullDataSets>false</DataTraceFullDataSets>
+          <DataTraceIncludeServerTrace>false</DataTraceIncludeServerTrace>
+          <DataTraceReturnData>false</DataTraceReturnData>
+          <DataTraceDSChanges>false</DataTraceDSChanges>
+          <DeploymentLogging>Off</DeploymentLogging>
+          <DeregistrationException>Off</DeregistrationException>
+          <DialogException>Off</DialogException>
+          <FormLoad>Off</FormLoad>
+          <LogException>Off</LogException>
+          <NotifyAll>Off</NotifyAll>
+          <TransactionLoad>Off</TransactionLoad>
+          <DashboardException>Off</DashboardException>
+          <TraceHelp>Off</TraceHelp>
+          <UITraceLogDirectory>C:\Users\EDP-3\AppData\Roaming\epicor\log</UITraceLogDirectory>
+          <UITraceLocationScheme>%appdata%\epicor\log\</UITraceLocationScheme>
+          <SysRevID>149163367</SysRevID>
+          <SysRowID>135b2b91-921b-4dc8-9a3c-c982f28f3fbe</SysRowID>
+          <BitFlag>0</BitFlag>
+          <RowMod></RowMod>
+        </UserTracing>
+      </UserTracingDataSet>
+    </parameter>
+    <parameter name="CallContext" type="Ice.Bpm.Context.ContextDataSet">
+      <ContextDataSet xmlns="http://www.epicor.com/Ice/300/Bpm/Context">
+        <BpmData>
+          <SysRowID>3827ce61-adcf-4150-acd4-7d0fec0d34a1</SysRowID>
+        </BpmData>
+      </ContextDataSet>
+    </parameter>
+  </parameters>
+</tracePacket></tracegroup>
+</root>

@@ -1,0 +1,1 @@
+AVG(SUM(p.Qty)*SUM(QtyPO + CONVERT(float,snbd.PPN))+snbd.QtyTerima) HargAvg

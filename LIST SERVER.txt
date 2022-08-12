@@ -1,0 +1,3 @@
+LIST server
+
+\\131.68.5.222\it\TSS

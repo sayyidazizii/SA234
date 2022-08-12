@@ -1,0 +1,1782 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Text;
+using System.Windows.Forms;
+using ISA.DAL;
+using System.Globalization;
+using ISA.Pabrik.Nakayama.Class;
+
+namespace ISA.Pabrik.Nakayama.Produksi
+{
+    public partial class HasilPlanWOAlu : ISA.Pabrik.Nakayama.Controls.BaseForm
+    {
+        enum SelectGrid { Header, Detail, Material, Komponen, PenunjangHeader, PenunjangDetail, PenunjangMould };
+        SelectGrid SetGrid;
+
+        public enum MainButton { ADD, EDIT, DELETE };
+        MainButton MainBtn;
+
+        Guid IDHeader, IDDetail, IDWOD, IDResepWIP, IDHasilPrev;
+
+        public Guid LineProduksiFinishingRowID;
+
+        public HasilPlanWOAlu()
+        {
+            InitializeComponent();
+        }
+
+        private void HasilPlanWOAlu_Load(object sender, EventArgs e)
+        {
+            
+            
+            // ambil rowid finishing
+            GlobalVarWOAlu gloVar = new GlobalVarWOAlu();
+            this.LineProduksiFinishingRowID = new Guid(gloVar.LineProduksiFinshingAluRowID());
+
+
+            // sembunyikan dulu tab berikunya :D
+            //tabControlUtama.TabPages.Remove(tabUtamaFinishingProcess);
+
+            rTanggal.FromDate = Class.GlobalVar.DateAwal;
+            rTanggal.ToDate = Class.GlobalVar.DateAkhir;
+
+            // Define "Right Corner" Dropdown
+            setCboLini();
+
+            //cmdCari_Click(sender, e);
+            //cmdCari.PerformClick();
+
+            // pilih yang row terakhir dan pastikan grid lain yang berhubungan meload data yang sesuai
+            //int prodNumRows = gridProduksiWO.Rows.Count;
+            //gridProduksiWO.CurrentCell = gridProduksiWO.Rows[prodNumRows - 1].Cells["NoProses"];
+            //onEnterGridProduksiWO();
+
+            // >>...
+            // ... !!! ...
+            // .... !! bagian ini handle untuk finishing !! ....
+            finishingTanggal.FromDate = Class.GlobalVar.DateAwal;
+            finishingTanggal.ToDate = Class.GlobalVar.DateAkhir;
+
+            //Proses QC
+            rdTanggalQC.FromDate = Class.GlobalVar.DateAwal;
+            rdTanggalQC.ToDate = Class.GlobalVar.DateAkhir;
+            //LoadQC();
+
+            // load data grid atas
+            //finishingPreparingGridMaterialColumns();
+            //loadFinishingGridOperator();
+            //loadFinishingGridMaterial();
+            // finishing end
+
+            addfinishingTanggal.FromDate = Class.GlobalVar.DateAwal;
+            addfinishingTanggal.ToDate = Class.GlobalVar.DateAkhir;
+
+            //addfinishingPreparingGridMaterialColumns();
+            //loadAddFinishingGridOperator();
+            //loadAddFinishingGridMaterial();
+
+            //Penunjang
+            rdTanggalP.FromDate = Class.GlobalVar.DateAwal;
+            rdTanggalP.ToDate = Class.GlobalVar.DateAkhir;
+            dgvPenunjangH.AutoGenerateColumns = false;
+            //btnSearch.PerformClick();
+            //btnSearch_Click(sender, new EventArgs());
+
+            // Disable Tab Finishing Proses
+            (tabControlUtama.TabPages[1] as Control).Enabled = false;
+        }
+
+        private void setCboLini()
+        {
+            // get from database
+            DataTable dTcboLini = Class.Execute.LookUpUserLine(SecurityManager.UserID);
+
+            // Adding new row
+            DataRow newRow = dTcboLini.NewRow();
+            newRow["NmLine"] = "ALL";
+            newRow["LineProduksiRowID"] = Guid.Empty;
+            dTcboLini.Rows.InsertAt(newRow, 0);
+
+            //attach to dropdown
+            cboLini.DataSource = dTcboLini;
+            cboLini.DisplayMember = "NmLine";
+            cboLini.ValueMember = "LineProduksiRowID";
+
+            cboLiniP.DataSource = dTcboLini;
+            cboLiniP.DisplayMember = "NmLine";
+            cboLiniP.ValueMember = "LineProduksiRowID";
+
+            cboLiniQC.DataSource = dTcboLini;
+            cboLiniQC.DisplayMember = "NmLine";
+            cboLiniQC.ValueMember = "LineProduksiRowID";
+        }
+
+        public String getCboLini()
+        {
+            String val = cboLini.SelectedValue.ToString();
+            return val;
+        }
+
+        private void LoadHPWO()
+        {
+            gridProduksiWO.DataSource = Class.Produksi.WorkOrder.ViewProsesProd(rTanggal.FromDate.Value, rTanggal.ToDate.Value, Guid.Empty);
+        }
+
+        private void LoadHPWOP()
+        {
+            dgvPenunjangH.AutoGenerateColumns = false;
+            dgvPenunjangH.DataSource = Class.Produksi.WorkOrder.ViewProsesProd(rdTanggalP.FromDate.Value, rdTanggalP.ToDate.Value, Guid.Empty);   
+        }
+
+        /*
+         * load hasil material
+         */
+        private void LoadHPWOD(Guid ID)
+        {
+            // Hitung sisa material kucu
+            //Class.Produksi.WorkOrder.SisaMaterial(IDHeader);
+
+            // Setting data for HPWOD
+            DataTable dtHPWOD = Class.Produksi.WorkOrder.ViewProsesProdDetailNext(ID);
+            //dtHPWOD.Columns.Add("TQty", typeof(double), "isnull(Qty, 0) + isnull(SPOk, 0) + isnull(SPKropos,0) + isnull(SPSeting,0)");
+            //!!!dtHPWOD.Columns.Add("Tkg", typeof(double), "(isnull(Qty, 0) + isnull(SPOk, 0) + isnull(SPKropos,0) + isnull(SPSeting,0)) * Qty * QtyIsi");
+            gridKomponenMat.DataSource = dtHPWOD;
+
+            // Setting total pemakaian material
+            gridTotalPakai.DataSource = Class.Produksi.WorkOrder.ViewTotalMatPakai(ID);
+        }
+
+        /*
+         * Load grid ke 3 (bahan baku)
+         */
+        private void LoadHPMat(Guid ID)
+        {
+            DataTable dtb = Class.Produksi.WorkOrder.ViewProsesProdDetailKNext(ID);
+            DataTable dtk = Class.Produksi.WorkOrder.ViewProsesProdDetailKNext(ID);
+            dtb.DefaultView.RowFilter = "TipeItem=0";
+            dtk.DefaultView.RowFilter = "TipeItem=1";
+            gridMatBKU.DataSource = dtb.DefaultView.ToTable();
+            gridMatPendukung.DataSource = dtk.DefaultView.ToTable();
+        }
+
+        private void cmdCari_Click(object sender, EventArgs e)
+        {
+             LoadHPWO();
+        }
+
+        /*
+         * Grid paling atas pindah yang dipilih
+         */
+        private void gridProduksiWO_CellEnter(object sender, DataGridViewCellEventArgs e)
+        {
+            //onEnterGridProduksiWO();
+        }
+
+        private void onEnterGridProduksiWO()
+        {
+            if (gridProduksiWO.SelectedCells.Count > 0)
+            {
+                IDHeader = (Guid)Class.Tools.isNullRowID(gridProduksiWO.SelectedCells[0].OwningRow.Cells["RowidH"].Value);
+                // load grid kedua (gridKomponenMat)
+                LoadHPWOD(IDHeader);
+                //string Proses = (string)gridProduksiWO.SelectedCells[0].OwningRow.Cells["NamaProses"].Value;
+                string LiniProduksi = (string)gridProduksiWO.SelectedCells[0].OwningRow.Cells["LiniProduksi"].Value;
+                if (LiniProduksi == "MELTING ALUMUNIUM NAKAYAMA")
+                {
+                    gridKomponenMat.Columns["SPreject"].HeaderText = "Kotoran Alm";
+                    gridKomponenMat.Columns["Tkg"].Visible = false;
+                }
+                else
+                {
+                    gridKomponenMat.Columns["SPreject"].HeaderText = "SP / Reject";
+                    gridKomponenMat.Columns["Tkg"].Visible = true;
+                }
+                if (LiniProduksi == "MACHINING NAKAYAMA")
+                {
+                    gridKomponenMat.Columns["Tkg"].Visible = false;
+                    gridKomponenMat.Columns["TQty"].Visible = false;
+                    gridKomponenMat.Columns["Selesai"].Visible = true;
+                }
+                else
+                {
+                    gridKomponenMat.Columns["Tkg"].Visible = true;
+                    gridKomponenMat.Columns["TQty"].Visible = true;
+                    gridKomponenMat.Columns["Selesai"].Visible = false;
+                }
+                if (LiniProduksi == "CASTING ALUMUNIUM NAKAYAMA" || LiniProduksi == "PRODUKSI SAND CORE NAKAYAMA" || LiniProduksi == "FINISHING NAKAYAMA")
+                {
+                    gridKomponenMat.Columns["Tkg"].Visible = false;
+                    gridKomponenMat.Columns["TQty"].Visible = false;
+                    gridKomponenMat.Columns["TotalProses"].Visible = true;
+                    gridKomponenMat.Columns["TotalCavity"].Visible = true;
+                    gridKomponenMat.Columns["TKucu"].Visible = true;
+                    gridKomponenMat.Columns["SPKg"].Visible = true;
+                    gridKomponenMat.Columns["QKg"].Visible = true;
+                }
+                else
+                {
+                    gridKomponenMat.Columns["Tkg"].Visible = true;
+                    gridKomponenMat.Columns["TQty"].Visible = true;
+                    gridKomponenMat.Columns["TotalProses"].Visible = false;
+                    gridKomponenMat.Columns["TotalCavity"].Visible = false;
+                    gridKomponenMat.Columns["TKucu"].Visible = false;
+                    gridKomponenMat.Columns["SPKg"].Visible = false;
+                    gridKomponenMat.Columns["QKg"].Visible = false;
+                }
+
+                // jika terdapat hasil komponen di gridKomponenMat maka load semua grid bahan baku.
+                if (gridKomponenMat.SelectedCells.Count > 0)
+                {
+                    LoadHPMat((Guid)gridKomponenMat.SelectedCells[0].OwningRow.Cells["RowIDD"].Value);
+                }
+                else
+                {
+                    DataTable dt = new DataTable();
+                    gridMatBKU.DataSource = dt;
+                    gridMatPendukung.DataSource = dt;
+                }
+            }
+            else
+            {
+                IDHeader = Guid.Empty;
+            }
+        }
+
+        private void cmdClose_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void cmdAdd_Click(object sender, EventArgs e)
+        {
+            this.MainBtn = MainButton.ADD;
+
+            
+
+            // pilih berdasarkan grid yang diklik
+            if (SetGrid == SelectGrid.Header) // grid pertama (proses produksi)
+            {
+                Guid cboLiniVal = (Guid)cboLini.SelectedValue;
+                String cboLiniText = (String)cboLini.Text;
+                Action _LoadHPWO = this.LoadHPWO;
+                
+                frmWOAluProses frmAdd = new Produksi.frmWOAluProses(this, cboLiniVal, cboLiniText, MainBtn, _LoadHPWO);
+                frmAdd.Show();
+
+                string NoProses = frmAdd.NoProses;
+                gridProduksiWO.FindRow("NoProses", NoProses);
+            }
+            else if (SetGrid == SelectGrid.Detail) // grid kedua (hasil produksi)
+            {
+                // just validation (validasi ke header grid untuk mengatasi gridheadergrid kosong)
+                int numRowsProduksiWO = gridProduksiWO.Rows.Count;
+                if (numRowsProduksiWO <= 0)
+                {
+                    MessageBox.Show("Tidak Ada Proses Produksi");
+                    return;
+                }
+
+                DataTable dt = new DataTable();
+                dt = Class.Produksi.WorkOrder.MaxInputProcessAllumunium("NAKAYAMA");
+
+                if (dt.Rows.Count > 0)
+                {
+                    int d = Int32.Parse(dt.Rows[0]["BackDay"].ToString());
+                    int m = Int32.Parse(dt.Rows[0]["BackMonth"].ToString());
+                    int y = Int32.Parse(dt.Rows[0]["BackYear"].ToString());
+                    DateTime createproses = ((DateTime)gridProduksiWO.SelectedCells[0].OwningRow.Cells["TglProses"].Value).Date;
+                    DateTime bolehadd = (DateTime.Now.AddDays(d).AddMonths(m).AddYears(y)).Date;
+
+                    //Console.WriteLine(createproses);
+                    //Console.WriteLine(bolehadd);
+                    if (bolehadd > createproses)
+                    {
+                        MessageBox.Show("Penginputan Sudah tidak bisa di Tambah Lagi.");
+                        return;
+                    }
+
+                }
+
+                Guid IDHPWO = (Guid)gridProduksiWO.SelectedCells[0].OwningRow.Cells["rowIDH"].Value;
+                Guid IDProses = (Guid)gridProduksiWO.SelectedCells[0].OwningRow.Cells["Proses"].Value;
+                Guid IDLiniProduksi = (Guid)gridProduksiWO.SelectedCells[0].OwningRow.Cells["IDLini"].Value;
+                String NamaProses = (String)gridProduksiWO.SelectedCells[0].OwningRow.Cells["NamaProses"].Value;
+                
+                frmWOAluMaterial addMaterial = new Produksi.frmWOAluMaterial(this, MainBtn, IDHPWO, IDProses, IDLiniProduksi, NamaProses);
+                
+                addMaterial.shift = (int)gridProduksiWO.SelectedCells[0].OwningRow.Cells["shift"].Value;
+                DateTime tglProses = (DateTime)gridProduksiWO.SelectedCells[0].OwningRow.Cells["TglProses"].Value;
+                addMaterial.tglProses = tglProses.ToString("dd MMMM yyyy");
+                addMaterial.nmOperator = (string)gridProduksiWO.SelectedCells[0].OwningRow.Cells["Operator"].Value;
+                
+                if (ActiveForm != null) addMaterial.MdiParent = ActiveForm;
+                
+                addMaterial.Show();
+
+                // load kembali grid yang berhubungan
+                //LoadHPWOD(IDHPWO);                
+            }
+        }
+
+        public void reLoadHPWOD(Guid IDHPWO)
+        {
+
+            //IDHeader = (Guid)Class.Tools.isNullRowID(gridProduksiWO.SelectedCells[0].OwningRow.Cells["RowidH"].Value);
+            // load grid kedua (gridKomponenMat)
+            //LoadHPWOD(IDHeader);
+
+            this.LoadHPWOD(IDHPWO);
+
+            // get the executed row...
+            int numRows = gridKomponenMat.Rows.Count;
+            numRows = numRows - 1;
+            gridKomponenMat.CurrentCell = gridKomponenMat.Rows[numRows].Cells["NamaMaterialHasil"];
+            Guid IDHPWOD = (Guid)gridKomponenMat.SelectedCells[0].OwningRow.Cells["RowIDD"].Value;
+
+            // selecting executed row...
+            gridKomponenMat.FindRow("RowIDD", IDHPWOD.ToString());
+        }
+
+        public void reLoadHPWODK(Guid IDHPWOD)
+        {
+            gridKomponenMat.FindRow("RowIDD", IDHPWOD.ToString());
+        }
+
+        private void gridProduksiWO_Click(object sender, EventArgs e)
+        {
+            SetGrid = SelectGrid.Header;
+        }
+
+        private void gridKomponenMat_Click(object sender, EventArgs e)
+        {
+            SetGrid = SelectGrid.Detail;
+        }
+
+        private void gridMatBKU_Click(object sender, EventArgs e)
+        {
+            SetGrid = SelectGrid.Material;
+        }
+
+        private void gridMatPendukung_Click(object sender, EventArgs e)
+        {
+            SetGrid = SelectGrid.Komponen;
+        }
+
+        private void cboLini_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (cboLini.ValueMember.ToString() != "")
+            {
+                (gridProduksiWO.DataSource as DataTable).DefaultView.RowFilter = "NmLine = '" + Class.Tools.isNull(cboLini.Text, "") + "'";
+                if (gridProduksiWO.Rows.Count == 0)
+                {
+                    (gridProduksiWO.DataSource as DataTable).DefaultView.RowFilter = "";
+                }
+            }
+            if (cboLini.Text == "MELTING ALUMUNIUM NAKAYAMA")
+            {
+                gridKomponenMat.Columns["SPreject"].HeaderText = "Kotoran Alm";
+                gridKomponenMat.Columns["Tkg"].Visible = false;
+            }
+            else
+            {
+                gridKomponenMat.Columns["SPreject"].HeaderText = "SP / Reject";
+                gridKomponenMat.Columns["Tkg"].Visible = true;
+            }
+            if (cboLini.Text == "MACHINING NAKAYAMA")
+            {
+                gridKomponenMat.Columns["Tkg"].Visible = false;
+                gridKomponenMat.Columns["TQty"].Visible = false;
+                gridKomponenMat.Columns["Selesai"].Visible = true;
+            }
+            else
+            {
+                gridKomponenMat.Columns["Tkg"].Visible = true;
+                gridKomponenMat.Columns["TQty"].Visible = true;
+                gridKomponenMat.Columns["Selesai"].Visible = false;
+            }
+        }
+
+        private void gridKomponenMat_CellEnter(object sender, DataGridViewCellEventArgs e)
+        {
+            // jika terdapat hasil komponen di gridKomponenMat maka load semua grid bahan baku.
+            if (gridKomponenMat.SelectedCells.Count > 0)
+            {
+                LoadHPMat((Guid)gridKomponenMat.SelectedCells[0].OwningRow.Cells["RowIDD"].Value);
+                LoadWO((Guid)gridKomponenMat.SelectedCells[0].OwningRow.Cells["IDMaterial"].Value);
+            }
+            else
+            {
+                DataTable dt = new DataTable();
+                gridMatBKU.DataSource = dt;
+                gridMatPendukung.DataSource = dt;
+            }
+        }
+
+        private void finishingCmdClose_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void finishingCmdAdd_Click(object sender, EventArgs e)
+        {
+            this.MainBtn = MainButton.ADD;
+            frmWOAluFinishing frmOpt = new frmWOAluFinishing(this, this.MainBtn);
+            if (ActiveForm != null) frmOpt.MdiParent = ActiveForm;
+            frmOpt.Show();
+        }
+
+        private void finishingGridMaterial_Scroll(object sender, ScrollEventArgs e)
+        {
+            if (e.ScrollOrientation == ScrollOrientation.HorizontalScroll)
+            {
+                finishingGridMaterialHeader.HorizontalScrollingOffset = finishingGridMaterial.HorizontalScrollingOffset;
+            }
+        }
+
+        private void cmdEdit_Click(object sender, EventArgs e)
+        {
+            this.MainBtn = MainButton.EDIT;
+
+
+            DataTable dt = new DataTable();
+            dt = Class.Produksi.WorkOrder.MaxInputProcessAllumunium("NAKAYAMA");
+            
+           
+            //MessageBox.Show("Penginputan Sudah tidak bisa di Edit Lagi.");
+            //return;
+
+            if (dt.Rows.Count > 0)
+            {
+                int d = Int32.Parse(dt.Rows[0]["BackDay"].ToString());
+                int m = Int32.Parse(dt.Rows[0]["BackMonth"].ToString());
+                int y = Int32.Parse(dt.Rows[0]["BackYear"].ToString());
+                DateTime createproses = ((DateTime)gridProduksiWO.SelectedCells[0].OwningRow.Cells["TglProses"].Value).Date;
+                DateTime bolehadd = (DateTime.Now.AddDays(d).AddMonths(m).AddYears(y)).Date;
+
+
+               
+                //Console.WriteLine(createproses);
+                //Console.WriteLine(bolehadd);
+                
+                //edit SA
+                string approved = (String)gridProduksiWO.SelectedCells[0].OwningRow.Cells[                       "Approved"].Value ;
+                   
+                if (approved  == "1")
+                {
+                    MessageBox.Show("Sudah Approved tidak bisa di Edit Lagi.");
+                    return;
+                }
+
+
+                if (bolehadd > createproses)
+                {
+                    MessageBox.Show("Penginputan Sudah tidak bisa di Edit Lagi.");
+                    return;
+                }
+
+            }
+
+            // pilih berdasarkan grid yang diklik
+            if (SetGrid == SelectGrid.Header) // grid pertama (proses produksi)
+            {
+                onEnterGridProduksiWO();
+
+                // just validation
+                int numRowsProduksiWO = gridProduksiWO.Rows.Count;
+                if (numRowsProduksiWO <= 0)
+                {
+                    MessageBox.Show("Tidak Ada Proses Produksi");
+                    return;
+                }
+
+                // Jika sudah punya detail tidak boleh edit header
+
+                //if (gridKomponenMat.Rows.Count > 0)
+                //{
+                //    MessageBox.Show("Sudah Input Detail, Header tidak Dapat di Edit.");
+                //    return;
+                //}
+
+                Guid cboLiniVal = (Guid)cboLini.SelectedValue;
+                String cboLiniText = (String)cboLini.Text;
+                Action _LoadHPWO = this.LoadHPWO;
+
+                frmWOAluProses EditForm = new frmWOAluProses(this, cboLiniVal, cboLiniText, MainBtn, _LoadHPWO);
+
+                // send variable for form populating
+                EditForm.IDHeader = (Guid)gridProduksiWO.SelectedCells[0].OwningRow.Cells["RowIDH"].Value;
+                EditForm.NoProses = (string)gridProduksiWO.SelectedCells[0].OwningRow.Cells["NoProses"].Value;
+                EditForm.TglProses = (DateTime)gridProduksiWO.SelectedCells[0].OwningRow.Cells["TglProses"].Value;
+                EditForm.ProsesKe = (int)gridProduksiWO.SelectedCells[0].OwningRow.Cells["ProsesKe"].Value;
+                EditForm.Shift = (int)gridProduksiWO.SelectedCells[0].OwningRow.Cells["Shift"].Value;
+                EditForm.ManPower = (int)gridProduksiWO.SelectedCells[0].OwningRow.Cells["ManPower"].Value;
+                EditForm.Operator = (string)Tools.isNull(gridProduksiWO.SelectedCells[0].OwningRow.Cells["Operator"].Value,string.Empty);
+                EditForm.JamDari = (TimeSpan)gridProduksiWO.SelectedCells[0].OwningRow.Cells["JamAwal"].Value;
+                EditForm.JamKe = (TimeSpan)gridProduksiWO.SelectedCells[0].OwningRow.Cells["JamAkhir"].Value;
+                EditForm.Keterangan = (string)gridProduksiWO.SelectedCells[0].OwningRow.Cells["Keterangan"].Value;
+                EditForm.LiniProduksi = (Guid)gridProduksiWO.SelectedCells[0].OwningRow.Cells["IDLini"].Value;
+                EditForm.IDMesin = (Guid)gridProduksiWO.SelectedCells[0].OwningRow.Cells["IDMesin"].Value;
+                EditForm.ProsesProduksi = (Guid)gridProduksiWO.SelectedCells[0].OwningRow.Cells["Proses"].Value;
+                EditForm.Approved = (String)gridProduksiWO.SelectedCells[0].OwningRow.Cells["Approvedby"].Value;
+
+                EditForm.ShowDialog(); 
+
+                // set selected grid's row.
+                gridProduksiWO.FindRow("NoProses", EditForm.NoProses);
+            }
+            else if (SetGrid == SelectGrid.Detail) // grik kedua (hasil produksi)
+            {
+                // valisasi aja
+                int numRowsKomponenMat = gridKomponenMat.Rows.Count;
+                if (numRowsKomponenMat <= 0 )
+                {
+                    MessageBox.Show("Tidak Ada Material Hasil");
+                    return;
+                }
+                int numRowsProduksiWO = gridProduksiWO.Rows.Count;
+                if (numRowsProduksiWO <= 0)
+                {
+                    MessageBox.Show("Tidak Ada Proses Produksi");
+                    return;
+                }
+
+
+                Guid IDHPWO = (Guid)gridProduksiWO.SelectedCells[0].OwningRow.Cells["rowIDH"].Value;
+                Guid IDProses = (Guid)gridProduksiWO.SelectedCells[0].OwningRow.Cells["Proses"].Value;
+                Guid IDLiniProduksi = (Guid)gridProduksiWO.SelectedCells[0].OwningRow.Cells["IDLini"].Value;
+                String NamaProses = (String)gridProduksiWO.SelectedCells[0].OwningRow.Cells["NamaProses"].Value;
+
+                frmWOAluMaterial editMaterial = new Produksi.frmWOAluMaterial(this, MainBtn, IDHPWO, IDProses, IDLiniProduksi, NamaProses);
+
+                editMaterial.shift = (int)gridProduksiWO.SelectedCells[0].OwningRow.Cells["shift"].Value;
+                DateTime tglProses = (DateTime)gridProduksiWO.SelectedCells[0].OwningRow.Cells["TglProses"].Value;
+                editMaterial.tglProses = tglProses.ToString("dd MMMM yyyy");
+                editMaterial.nmOperator = (string)gridProduksiWO.SelectedCells[0].OwningRow.Cells["Operator"].Value;
+                
+
+                if (ActiveForm != null) editMaterial.MdiParent = ActiveForm;
+
+                Guid IDHPWOD = (Guid)gridKomponenMat.SelectedCells[0].OwningRow.Cells["RowIDD"].Value;
+                editMaterial.pIDHPWOD = (Guid)gridKomponenMat.SelectedCells[0].OwningRow.Cells["RowIDD"].Value;
+                editMaterial.pNamaMaterial = (string)gridKomponenMat.SelectedCells[0].OwningRow.Cells["NamaMaterialHasil"].Value;
+                editMaterial.pIDMaterial = (Guid)gridKomponenMat.SelectedCells[0].OwningRow.Cells["IDMaterial"].Value;
+                editMaterial.pKodeMaterial = (string)gridKomponenMat.SelectedCells[0].OwningRow.Cells["KdMaterial"].Value;
+                string resep = gridKomponenMat.SelectedCells[0].OwningRow.Cells["IDResep"].Value.ToString();
+                editMaterial.pIDResep = resep == "" ? Guid.Empty : (Guid)gridKomponenMat.SelectedCells[0].OwningRow.Cells["IDResep"].Value;
+                string sPQtyOK = gridKomponenMat.SelectedCells[0].OwningRow.Cells["Qty"].Value.ToString();
+                editMaterial.pQtyOK = sPQtyOK == "" ? 0 : (double)gridKomponenMat.SelectedCells[0].OwningRow.Cells["Qty"].Value;
+                string sQtySP1 = gridKomponenMat.SelectedCells[0].OwningRow.Cells["SPreject"].Value.ToString();
+                editMaterial.pQtySP1 = sQtySP1 == "" ? 0 :(double)gridKomponenMat.SelectedCells[0].OwningRow.Cells["SPreject"].Value;
+                string sPket = gridKomponenMat.SelectedCells[0].OwningRow.Cells["Catatan"].Value.ToString();
+                editMaterial.pket = sPket == "" ? "" : (string)gridKomponenMat.SelectedCells[0].OwningRow.Cells["Catatan"].Value;
+                editMaterial.pQtyTarget = Convert.ToDouble(Tools.isNull(gridKomponenMat.SelectedCells[0].OwningRow.Cells["QtyTarget"].Value, 0));
+                editMaterial.JamKe = Convert.ToInt32(Tools.isNull(gridKomponenMat.SelectedCells[0].OwningRow.Cells["JamKe"].Value, 1));
+                editMaterial.pQtyRework = Convert.ToDouble(Tools.isNull(gridKomponenMat.SelectedCells[0].OwningRow.Cells["QtyRework"].Value, 0));
+
+                if (IDLiniProduksi == new Guid("6F1E2F61-611E-40C3-8F00-CD8D6A1114AB")) //MACHINING NAKAYAMA
+                {
+                    string Selesai = gridKomponenMat.SelectedCells[0].OwningRow.Cells["selesai"].Value.ToString();
+                    if (Selesai == "FINISH")
+                    { editMaterial.selesai = 1; }
+                    else { editMaterial.selesai = 0; }
+                }
+                editMaterial.FlgWO = Convert.ToInt32(Tools.isNull(gridKomponenMat.SelectedCells[0].OwningRow.Cells["FlagWO"].Value,0));
+
+                editMaterial.Show();
+
+                // load kembali grid yang berhubungan
+                // load datanya dipanggin dari form childnya karena ini tidak modalform jadi running program tetep lanjut.
+            }
+        }
+
+        private void cmdDelete_Click(object sender, EventArgs e)
+        {
+            this.MainBtn = MainButton.DELETE;
+
+            if (SetGrid == SelectGrid.Header) // grid pertama (proses produksi)
+            {
+                // just a validation ...
+                int numRowsProduksiWO = gridProduksiWO.Rows.Count;
+                if (numRowsProduksiWO <= 0)
+                {
+                    MessageBox.Show("Tidak Ada Proses Produksi");
+                    return;
+                }
+
+
+                // get hpwod 
+                Guid IDHeader = (Guid)Class.Tools.isNullRowID(gridProduksiWO.SelectedCells[0].OwningRow.Cells["RowidH"].Value);
+                DataTable dtHPWOD = Class.Produksi.WorkOrder.ViewProsesProdDetailNext(IDHeader);
+                // get hpwod numrows
+                int numRowsHPWOD = dtHPWOD.Rows.Count;
+
+                // execute the validation
+                if (numRowsHPWOD > 0)
+                {
+                    MessageBox.Show("Tidak bisa dihapus. Masih punya daftar \"HASIL MATERIAL\"", "", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+                else 
+                {
+                    DialogResult tanya = MessageBox.Show("Anda ingin menghapus data proses ?", "Perhatian!", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    if(tanya == DialogResult.Yes)
+                    {
+                        //-- buka coment ini jika ingin menghapus semua kebawah langsung
+                        /*// get hasil material
+                        DataTable dtDetail = Class.Produksi.WorkOrder.ViewProsesProdDetailNext(IDHeader);
+                        foreach(DataRow drDetail in dtDetail.Rows)
+                        {
+                            // get bahan baku
+                            DataTable dtBK = Class.Produksi.WorkOrder.ViewProsesProdDetailNext((Guid)drDetail["RowID"]);
+                            foreach(DataRow drBK in dtBK.Rows)
+                            {
+                                // delete bahan baku
+                                Class.Produksi.WorkOrder.DelHasilProduksi((Guid)drBK["RowID"], "K");
+                            }
+                            // delete material hasil
+                            Class.Produksi.WorkOrder.DelHasilProduksi((Guid)drDetail["RowID"], "D");
+                        }
+                        // delete proses
+                        Class.Produksi.WorkOrder.DelHasilProduksi(IDHeader, "H");*/
+
+                        int gridHPWOrows = gridProduksiWO.Rows.Count;
+                        int gridHPWOrows1 = gridHPWOrows - 1;
+                        if(gridHPWOrows1 >=0 )
+                        {
+                            gridProduksiWO.Rows[gridHPWOrows1].Selected = true;
+                        }
+                        Class.Produksi.WorkOrder.DelHasilProduksi(IDHeader, "H");
+                        LoadHPWO();
+                        
+                    }
+                }
+                
+            }
+            else if (SetGrid == SelectGrid.Detail) // grid kedua (hasil produksi)
+            {
+                // validation
+                int numRowsKomponenMat = gridKomponenMat.Rows.Count;
+                if (numRowsKomponenMat <= 0)
+                {
+                    MessageBox.Show("Tidak Ada Material Hasil");
+                    return;
+                }
+
+                int numRowsProduksiWO = gridProduksiWO.Rows.Count;
+                if (numRowsProduksiWO <= 0)
+                {
+                    MessageBox.Show("Tidak Ada Proses Produksi");
+                    return;
+                }
+
+                //get hpwokd datatable dengan id hpwod
+                //hpwokd numrows 
+                Guid IDHPWO = (Guid)gridProduksiWO.SelectedCells[0].OwningRow.Cells["RowIDH"].Value;
+                Guid IDHPWOD = (Guid)gridKomponenMat.SelectedCells[0].OwningRow.Cells["RowIDD"].Value;
+                DialogResult tanya = MessageBox.Show("Anda ingin menghapus data Hasil Material beserta bahan bakunya ?", "Perhatian !", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if(tanya == DialogResult.Yes)
+                {
+                    // preparation for delete transaction
+                    Database dbDelete = new Database(Class.GlobalVar.DBPabrikProduksi);
+                    try
+                    {   
+                        int looper = 0;
+
+                        DataTable dtBK = Class.Produksi.WorkOrder.ViewProsesProdDetailKNext(IDHPWOD);
+
+                        // eksekusi delete bahan baku + komponen
+                        foreach (DataRow drBK in dtBK.Rows)
+                        {
+                            Guid IDHPWOK = (Guid)drBK["RowID"];
+                            frmWOAluMaterial.DelHasilProduksi(ref dbDelete, ref looper, IDHPWOK, "K");
+                        }
+
+                        // delete material hasil
+                        frmWOAluMaterial.DelHasilProduksi(ref dbDelete, ref looper, IDHPWOD, "D");
+
+                        dbDelete.BeginTransaction();
+                        // excuting added db exec with looper chainning for delete
+                        for (int i = 0; i < looper; i++)
+                        {
+                            dbDelete.Commands[i].ExecuteNonQuery();
+                        }
+                        dbDelete.CommitTransaction();
+                    }
+                    catch (Exception ex)
+                    {
+                        dbDelete.RollbackTransaction();
+                        MessageBox.Show("Error : " + ex.Message);
+                    }
+
+                    /*
+                    DataTable dtBK = Class.Produksi.WorkOrder.ViewProsesProdDetailKNext(IDHPWOD);
+                    
+                    // eksekusi delete bahan baku + komponen
+                    foreach(DataRow drBK in dtBK.Rows)
+                    {
+                        Guid IDHPWOK = (Guid)drBK["RowID"];
+                        Class.Produksi.WorkOrder.DelHasilProduksi(IDHPWOK, "K");
+                    }
+
+                    // delete material hasil
+                    Class.Produksi.WorkOrder.DelHasilProduksi(IDHPWOD, "D");*/
+                    LoadHPWOD(IDHPWO);
+                    LoadHPMat(IDHPWOD);
+                }
+            }
+        }
+
+
+        #region finishing
+
+        private void loadFinishingGridOperator()
+        {
+            // get raw data by proses produksi
+            DataTable dtOPT = Class.Produksi.WorkOrder.ViewProsesProd(finishingTanggal.FromDate.Value, finishingTanggal.ToDate.Value, Guid.Empty, 1);
+            
+            // select distinct by operator
+            DataView dvOPT = new DataView(dtOPT);
+            dvOPT.RowFilter = "IDLiniProduksi = '"+this.LineProduksiFinishingRowID.ToString()+"'"; // ID lini finishing (Guid)
+            dvOPT.Sort = "Operator, Shift asc";
+            DataTable dtOPTD = dvOPT.ToTable(true, "Operator", "Shift");
+            finishingGridOperator.DataSource = dtOPTD;
+        }
+
+        // function ini menyiapkan kolom-kolom yang ada di datagrid
+        // bedasarkan proses produksi lini untuk finishing
+        private void finishingPreparingGridMaterialColumns()
+        {
+            // remove all columns
+            finishingGridMaterial.Columns.Clear();
+
+            // getting list proses produksi
+            DataTable dtPO = new DataTable();
+            Guid FinishingRowID = new Guid(this.LineProduksiFinishingRowID.ToString()); // ini RowID lini produksi finishing
+            dtPO = Class.Produksi.WorkOrder.GetProsesWIP(FinishingRowID);
+
+            // adding columns from database
+            // add tgl column
+            DataGridViewTextBoxColumn colTgl = new DataGridViewTextBoxColumn();
+            colTgl.HeaderText = "";
+            colTgl.Name = "grdOptTgl";
+            colTgl.Resizable = DataGridViewTriState.False;
+            colTgl.ReadOnly = true;
+            colTgl.DataPropertyName = "TglProses";
+            colTgl.DefaultCellStyle.Format = "dd/MM/yyyy";
+            finishingGridMaterial.Columns.Add(colTgl);
+
+            // add material column
+            DataGridViewTextBoxColumn colMat = new DataGridViewTextBoxColumn();
+            colMat.HeaderText = "";
+            colMat.Name = "grdOptMaterial";
+            colMat.Resizable = DataGridViewTriState.False;
+            colMat.ReadOnly = true;
+            colMat.DataPropertyName = "NmMaterial";
+            colMat.Width = 200;
+            finishingGridMaterial.Columns.Add(colMat);
+
+            // add IDmaterial column
+            DataGridViewTextBoxColumn colIDMat = new DataGridViewTextBoxColumn();
+            colIDMat.HeaderText = "";
+            colIDMat.Name = "grdOptIDMaterial";
+            colIDMat.Resizable = DataGridViewTriState.False;
+            colIDMat.ReadOnly = true;
+            colIDMat.DataPropertyName = "IDMaterial";
+            colIDMat.Width = 200;
+            colIDMat.Visible = false;
+            finishingGridMaterial.Columns.Add(colIDMat);
+
+            // add OK columns (subcolumn)
+            int qtyColsCount = 0;
+            foreach (DataRow drPO in dtPO.Rows)
+            {
+                // creating newcol object
+                DataGridViewTextBoxColumn newCol = new DataGridViewTextBoxColumn();
+                // define column properties
+                newCol.HeaderText = (string)drPO["Nama"];
+                //newCol.Name = (string)drPO["Nama"] + "OK";
+                newCol.Name = finishingDataGridColumnNameFormater((string)drPO["Nama"]) + "OK";
+                newCol.Resizable = DataGridViewTriState.False;
+                newCol.ReadOnly = true;
+                newCol.DataPropertyName = finishingDataGridColumnNameFormater((string)drPO["Nama"]) + "OK";
+                newCol.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+                // attact column
+                finishingGridMaterial.Columns.Add(newCol);
+                qtyColsCount++;
+            }
+
+            // add SP columns (subcolumn)
+            foreach (DataRow drPO in dtPO.Rows)
+            {
+                // creating newcol object
+                DataGridViewTextBoxColumn newCol = new DataGridViewTextBoxColumn();
+                // define column properties
+                newCol.HeaderText = (string)drPO["Nama"];
+                //newCol.Name = drPO["RowID"].ToString() + "SP";
+                newCol.Name = finishingDataGridColumnNameFormater((string)drPO["Nama"]) + "SP";
+                newCol.Resizable = DataGridViewTriState.False;
+                newCol.DataPropertyName = finishingDataGridColumnNameFormater((string)drPO["Nama"]) + "SP";
+                newCol.ReadOnly = true;
+                newCol.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+                // attact column
+                finishingGridMaterial.Columns.Add(newCol);
+            }
+
+            // add keterangan column
+            DataGridViewTextBoxColumn colKet = new DataGridViewTextBoxColumn();
+            colKet.HeaderText = "";
+            colKet.Name = "grdOptKet";
+            colKet.Resizable = DataGridViewTriState.False;
+            colKet.ReadOnly = true;
+            colKet.DataPropertyName = "Keterangan";
+            colKet.Width = 300;
+            finishingGridMaterial.Columns.Add(colKet);
+
+            //gridOpt.DataSource = this.dtOptMat;
+
+
+            // addding columns on datagrid header
+            // bersihkan dulu awalnya.
+            finishingGridMaterialHeader.Columns.Clear();
+
+            DataGridViewTextBoxColumn colHTgl = new DataGridViewTextBoxColumn();
+            colHTgl.HeaderText = "Tgl";
+            colHTgl.Name = "headerTgl";
+            colHTgl.Resizable = DataGridViewTriState.False;
+            colHTgl.ReadOnly = true;
+            colHTgl.DataPropertyName = "headerTgl";
+            colHTgl.Width = 100;
+            finishingGridMaterialHeader.Columns.Add(colHTgl);
+
+            DataGridViewTextBoxColumn colHMaterial = new DataGridViewTextBoxColumn();
+            colHMaterial.HeaderText = "Material";
+            colHMaterial.Name = "headerMaterial";
+            colHMaterial.Resizable = DataGridViewTriState.False;
+            colHMaterial.ReadOnly = true;
+            colHMaterial.DataPropertyName = "headerMaterial";
+            colHMaterial.Width = 200;
+            finishingGridMaterialHeader.Columns.Add(colHMaterial);
+
+            // panjang rows
+            int qtyColsWidthEach = 100;
+            int qtyColsWidth = qtyColsWidthEach * qtyColsCount;
+
+            DataGridViewTextBoxColumn colHOK = new DataGridViewTextBoxColumn();
+            colHOK.HeaderText = "OK";
+            colHOK.Name = "headerOK";
+            colHOK.Resizable = DataGridViewTriState.False;
+            colHOK.ReadOnly = true;
+            colHOK.DataPropertyName = "headerOK";
+            colHOK.Width = qtyColsWidth;
+            finishingGridMaterialHeader.Columns.Add(colHOK);
+
+            DataGridViewTextBoxColumn colHSP = new DataGridViewTextBoxColumn();
+            colHSP.HeaderText = "SP";
+            colHSP.Name = "headerOK";
+            colHSP.Resizable = DataGridViewTriState.False;
+            colHSP.ReadOnly = true;
+            colHSP.DataPropertyName = "headerOK";
+            colHSP.Width = qtyColsWidth;
+            finishingGridMaterialHeader.Columns.Add(colHSP);
+
+            DataGridViewTextBoxColumn colHKet = new DataGridViewTextBoxColumn();
+            colHKet.HeaderText = "KETERANGAN";
+            colHKet.Name = "headerKet";
+            colHKet.Resizable = DataGridViewTriState.False;
+            colHKet.ReadOnly = true;
+            colHKet.DataPropertyName = "headerKet";
+            colHKet.Width = 300;
+            finishingGridMaterialHeader.Columns.Add(colHKet);
+        }
+
+        private string finishingDataGridColumnNameFormater(string rawName)
+        {
+            string hasil = "";
+
+            // continue here;
+            string[] rawName_arr = rawName.Split();
+            string rawName_1 = rawName_arr[0];
+            rawName_1 = rawName_1.Replace("/", "");
+            if (rawName_arr[1] == "CNC") rawName_1 += rawName_arr[2];
+            hasil = rawName_1;
+
+            return hasil;
+        }
+
+        private DataTable finishingLoadMaterial(DateTime fromdate, DateTime todate, string optName, int shift)
+        {
+            DataTable dt = new DataTable();
+            // generate datatable rows
+            try
+            {
+                using (Database db = new Database(Class.GlobalVar.DBPabrikProduksi))
+                {
+                    db.Commands.Add(db.CreateCommand("ISAPabrikProduksi.dbo.vsp_finishing_material"));
+                    db.Commands[0].Parameters.Add(new Parameter("@fromdate", SqlDbType.Date, fromdate));
+                    db.Commands[0].Parameters.Add(new Parameter("@todate", SqlDbType.Date, todate));
+                    db.Commands[0].Parameters.Add(new Parameter("@operator", SqlDbType.VarChar, optName));
+                    db.Commands[0].Parameters.Add(new Parameter("@shift", SqlDbType.Int, shift));
+                    dt = db.Commands[0].ExecuteDataTable();
+                }
+            }
+            catch (Exception ex)
+            {
+                Error.LogError(ex);
+            }
+
+            return dt;
+        }
+
+        private DataTable finishingLoadMaterial(DateTime fromdate, DateTime todate, string optName, int shift, int flagFinishing)
+        {
+            DataTable dt = new DataTable();
+            // generate datatable rows
+            try
+            {
+                using (Database db = new Database(Class.GlobalVar.DBPabrikProduksi))
+                {
+                    db.Commands.Add(db.CreateCommand("ISAPabrikProduksi.dbo.vsp_finishing_material"));
+                    db.Commands[0].Parameters.Add(new Parameter("@fromdate", SqlDbType.Date, fromdate));
+                    db.Commands[0].Parameters.Add(new Parameter("@todate", SqlDbType.Date, todate));
+                    db.Commands[0].Parameters.Add(new Parameter("@operator", SqlDbType.VarChar, optName));
+                    db.Commands[0].Parameters.Add(new Parameter("@shift", SqlDbType.Int, shift));
+                    db.Commands[0].Parameters.Add(new Parameter("@flagFinishing", SqlDbType.Int, flagFinishing));
+                    dt = db.Commands[0].ExecuteDataTable();
+                }
+            }
+            catch (Exception ex)
+            {
+                Error.LogError(ex);
+            }
+
+            return dt;
+        }
+
+        private void loadFinishingGridMaterial()
+        {
+            if (finishingGridOperator.SelectedCells.Count > 0)
+            {
+                // define var
+                DateTime fromdate = (DateTime)finishingTanggal.FromDate;
+                DateTime todate = (DateTime)finishingTanggal.ToDate;
+                string optName = (string)finishingGridOperator.SelectedCells[0].OwningRow.Cells["fnhGrdOptOperator"].Value;
+                int shift = (int)finishingGridOperator.SelectedCells[0].OwningRow.Cells["fnhGrdOptShift"].Value;
+                // get datatable
+                DataTable dt = this.finishingLoadMaterial(fromdate, todate, optName, shift, 1);
+                // attaching to datagrid
+                finishingGridMaterial.DataSource = dt;
+            }
+        }
+
+        #endregion
+
+        private void finishingGridOperator_CellEnter(object sender, DataGridViewCellEventArgs e)
+        {
+            loadFinishingGridMaterial();
+        }
+
+        private void finishingLblCari_Click(object sender, EventArgs e)
+        {
+            loadFinishingGridOperator();
+            loadFinishingGridMaterial();
+        }
+
+        // select row berdasarkan berdasarkan nama operator
+        public void loadfinishingGrid(string NmOpt)
+        {
+            loadFinishingGridOperator();
+            finishingGridOperator.FindRow("fnhGrdOptOperator", NmOpt);
+            loadFinishingGridMaterial();
+        }
+
+        // select row berdasarkan index row
+        public void loadfinishingGrid(int selected_index_row_opt)
+        {
+            loadFinishingGridOperator();
+            finishingGridOperator.Rows[selected_index_row_opt].Selected = true;
+            loadFinishingGridMaterial();
+        }
+
+        // mengambil tanggal proses paling awal yang ada di grid material bawah.
+        private DateTime minDateMaterial()
+        {
+            DateTime returnDate = new DateTime();
+
+            // ambil datatable dari grid.
+            DataTable dtMat = (DataTable)finishingGridMaterial.DataSource;
+            DataView dvMat = dtMat.DefaultView;
+            // urutkan ...
+            dvMat.Sort = "TglProses asc";
+            // ambil row paling awal.. dan ketemulah tanggal yang dimaksud
+            dtMat = dvMat.ToTable();
+            returnDate = (DateTime)dtMat.Rows[0]["TglProses"];
+
+            return returnDate;
+        }
+
+        // mengambil tanggal proses paling akhir yang ada di gri material bawah.
+        private DateTime maxDateMaterial()
+        {
+            DateTime returnDate = new DateTime();
+
+            // ambil datatable dari grid.
+            DataTable dtMat = (DataTable)finishingGridMaterial.DataSource;
+            DataView dvMat = dtMat.DefaultView;
+            // urutkan ...
+            dvMat.Sort = "TglProses desc";
+            // ambil row paling awal.. dan ketemulah tanggal yang dimaksud
+            dtMat = dvMat.ToTable();
+            returnDate = (DateTime)dtMat.Rows[0]["TglProses"];
+
+            return returnDate;
+        }
+
+        private void finishingCmdEdit_Click(object sender, EventArgs e)
+        {
+            // just a validation
+            int numGridMat = finishingGridMaterial.Rows.Count;
+            if (numGridMat <= 0 )
+            {
+                MessageBox.Show("Tidak ada data material");
+                return;
+            }
+
+            int selected_row_operator = finishingGridOperator.CurrentCell.RowIndex;
+            DateTime tglAwal = minDateMaterial();
+            DateTime tglSelesai = maxDateMaterial();
+            this.MainBtn = MainButton.EDIT;
+            string namaOperator = (string)finishingGridOperator.SelectedCells[0].OwningRow.Cells["fnhGrdOptOperator"].Value;
+            int shift = (int)finishingGridOperator.SelectedCells[0].OwningRow.Cells["fnhGrdOptShift"].Value;
+            DateTime tgl = (DateTime)finishingGridMaterial.SelectedCells[0].OwningRow.Cells["grdOptTgl"].Value;
+            Guid IDMaterial = (Guid)finishingGridMaterial.SelectedCells[0].OwningRow.Cells["grdOptIDMaterial"].Value;
+            frmWOAluFinishing frmEdit = new frmWOAluFinishing(this.MainBtn, this, namaOperator, shift, tgl, tglAwal, tglSelesai, IDMaterial, selected_row_operator);
+            if (ActiveForm != null) frmEdit.MdiParent = ActiveForm;
+            frmEdit.Show();
+        }
+
+        private void finishingCmdDelete_Click(object sender, EventArgs e)
+        {
+            this.MainBtn = MainButton.DELETE;
+        }
+
+
+
+
+
+
+        private void loadAddFinishingGridMaterial()
+        {
+            if (addfinishingGridOperator.SelectedCells.Count > 0)
+            {
+                // define var
+                DateTime fromdate = (DateTime)addfinishingTanggal.FromDate;
+                DateTime todate = (DateTime)addfinishingTanggal.ToDate;
+                string optName = (string)addfinishingGridOperator.SelectedCells[0].OwningRow.Cells["addfnhGridOptOperator"].Value;
+                int shift = (int)addfinishingGridOperator.SelectedCells[0].OwningRow.Cells["addfnhGridOptShift"].Value;
+                // get datatable
+                DataTable dt = this.finishingLoadMaterial(fromdate, todate, optName, shift, 2);
+                // attaching to datagrid
+                addfinishingGridMaterial.DataSource = dt;
+            }
+        }
+
+        private void loadAddFinishingGridOperator()
+        {
+            // get raw data by proses produksi
+            DataTable dtOPT = Class.Produksi.WorkOrder.ViewProsesProd(finishingTanggal.FromDate.Value, finishingTanggal.ToDate.Value, Guid.Empty, 2);
+
+            // select distinct by operator
+            DataView dvOPT = new DataView(dtOPT);
+            dvOPT.RowFilter = "IDLiniProduksi = '" + this.LineProduksiFinishingRowID.ToString() + "'"; // ID lini finishing (Guid)
+            dvOPT.Sort = "Operator, Shift asc";
+            DataTable dtOPTD = dvOPT.ToTable(true, "Operator", "Shift");
+            addfinishingGridOperator.DataSource = dtOPTD;
+        }
+
+        // select row berdasarkan index row
+        public void loadAddfinishingGrid(int selected_index_row_opt)
+        {
+            loadAddFinishingGridOperator();
+            addfinishingGridOperator.Rows[selected_index_row_opt].Selected = true;
+            loadAddFinishingGridMaterial();
+        }
+
+        // select row berdasarkan berdasarkan nama operator
+        public void loadAddfinishingGrid(string NmOpt)
+        {
+            loadAddFinishingGridOperator();
+            addfinishingGridOperator.FindRow("addfnhGridOptOperator", NmOpt);
+            loadAddFinishingGridMaterial();
+        }
+
+        private void addfinishingLblCari_Click(object sender, EventArgs e)
+        {
+            loadAddFinishingGridOperator();
+            loadAddFinishingGridMaterial();
+        }
+
+        private void addfinishingCmdAdd_Click(object sender, EventArgs e)
+        {
+            this.MainBtn = MainButton.ADD;
+            frmWOAluAdditionFinishing frmOpt = new frmWOAluAdditionFinishing(this, this.MainBtn);
+            if (ActiveForm != null) frmOpt.MdiParent = ActiveForm;
+            frmOpt.Show();
+        }
+
+        private void addfinishingCmdEdit_Click(object sender, EventArgs e)
+        {
+            // just a validation
+            int numGridMat = addfinishingGridMaterial.Rows.Count;
+            if (numGridMat <= 0)
+            {
+                MessageBox.Show("Tidak ada data material");
+                return;
+            }
+
+            int selected_row_operator = addfinishingGridOperator.CurrentCell.RowIndex;
+            DateTime tglAwal = minDateMaterialAddition();
+            DateTime tglSelesai = maxDateMaterialAddition();
+            this.MainBtn = MainButton.EDIT;
+            string namaOperator = (string)addfinishingGridOperator.SelectedCells[0].OwningRow.Cells["addfnhGridOptOperator"].Value;
+            int shift = (int)addfinishingGridOperator.SelectedCells[0].OwningRow.Cells["addfnhGridOptShift"].Value;
+            DateTime tgl = (DateTime)addfinishingGridMaterial.SelectedCells[0].OwningRow.Cells["addgrdOptTgl"].Value;
+            Guid IDMaterial = (Guid)addfinishingGridMaterial.SelectedCells[0].OwningRow.Cells["addgrdOptIDMaterial"].Value;
+            frmWOAluAdditionFinishing frmEdit = new frmWOAluAdditionFinishing(this.MainBtn, this, namaOperator, shift, tgl, tglAwal, tglSelesai, IDMaterial, selected_row_operator);
+            if (ActiveForm != null) frmEdit.MdiParent = ActiveForm;
+            frmEdit.Show();
+        }
+
+        // mengambil tanggal proses paling awal yang ada di grid material bawah.
+        private DateTime minDateMaterialAddition()
+        {
+            DateTime returnDate = new DateTime();
+
+            // ambil datatable dari grid.
+            DataTable dtMat = (DataTable)addfinishingGridMaterial.DataSource;
+            DataView dvMat = dtMat.DefaultView;
+            // urutkan ...
+            dvMat.Sort = "TglProses asc";
+            // ambil row paling awal.. dan ketemulah tanggal yang dimaksud
+            dtMat = dvMat.ToTable();
+            returnDate = (DateTime)dtMat.Rows[0]["TglProses"];
+
+            return returnDate;
+        }
+
+        // mengambil tanggal proses paling akhir yang ada di gri material bawah.
+        private DateTime maxDateMaterialAddition()
+        {
+            DateTime returnDate = new DateTime();
+
+            // ambil datatable dari grid.
+            DataTable dtMat = (DataTable)addfinishingGridMaterial.DataSource;
+            DataView dvMat = dtMat.DefaultView;
+            // urutkan ...
+            dvMat.Sort = "TglProses desc";
+            // ambil row paling awal.. dan ketemulah tanggal yang dimaksud
+            dtMat = dvMat.ToTable();
+            returnDate = (DateTime)dtMat.Rows[0]["TglProses"];
+
+            return returnDate;
+        }
+
+
+        private void addfinishingPreparingGridMaterialColumns()
+        {
+            // remove all columns
+            addfinishingGridMaterial.Columns.Clear();
+
+            // getting list proses produksi
+            DataTable dtPO = new DataTable();
+            Guid FinishingRowID = new Guid(this.LineProduksiFinishingRowID.ToString()); // ini RowID lini produksi finishing
+            dtPO = Class.Produksi.WorkOrder.GetProsesWIP(FinishingRowID);
+
+            // adding columns from database
+            // add tgl column
+            DataGridViewTextBoxColumn colTgl = new DataGridViewTextBoxColumn();
+            colTgl.HeaderText = "";
+            colTgl.Name = "addgrdOptTgl";
+            colTgl.Resizable = DataGridViewTriState.False;
+            colTgl.ReadOnly = true;
+            colTgl.DataPropertyName = "TglProses";
+            colTgl.DefaultCellStyle.Format = "dd/MM/yyyy";
+            addfinishingGridMaterial.Columns.Add(colTgl);
+
+            // add material column
+            DataGridViewTextBoxColumn colMat = new DataGridViewTextBoxColumn();
+            colMat.HeaderText = "";
+            colMat.Name = "addgrdOptMaterial";
+            colMat.Resizable = DataGridViewTriState.False;
+            colMat.ReadOnly = true;
+            colMat.DataPropertyName = "NmMaterial";
+            colMat.Width = 200;
+            addfinishingGridMaterial.Columns.Add(colMat);
+
+            // add IDmaterial column
+            DataGridViewTextBoxColumn colIDMat = new DataGridViewTextBoxColumn();
+            colIDMat.HeaderText = "";
+            colIDMat.Name = "addgrdOptIDMaterial";
+            colIDMat.Resizable = DataGridViewTriState.False;
+            colIDMat.ReadOnly = true;
+            colIDMat.DataPropertyName = "IDMaterial";
+            colIDMat.Width = 200;
+            colIDMat.Visible = false;
+            addfinishingGridMaterial.Columns.Add(colIDMat);
+
+            // add OK columns (subcolumn)
+            int qtyColsCount = 0;
+            foreach (DataRow drPO in dtPO.Rows)
+            {
+                // creating newcol object
+                DataGridViewTextBoxColumn newCol = new DataGridViewTextBoxColumn();
+                // define column properties
+                newCol.HeaderText = (string)drPO["Nama"];
+                //newCol.Name = (string)drPO["Nama"] + "OK";
+                newCol.Name = finishingDataGridColumnNameFormater((string)drPO["Nama"]) + "OK";
+                newCol.Resizable = DataGridViewTriState.False;
+                newCol.ReadOnly = true;
+                newCol.DataPropertyName = finishingDataGridColumnNameFormater((string)drPO["Nama"]) + "OK";
+                newCol.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+                // attact column
+                addfinishingGridMaterial.Columns.Add(newCol);
+                qtyColsCount++;
+            }
+
+            // add SP columns (subcolumn)
+            foreach (DataRow drPO in dtPO.Rows)
+            {
+                // creating newcol object
+                DataGridViewTextBoxColumn newCol = new DataGridViewTextBoxColumn();
+                // define column properties
+                newCol.HeaderText = (string)drPO["Nama"];
+                //newCol.Name = drPO["RowID"].ToString() + "SP";
+                newCol.Name = finishingDataGridColumnNameFormater((string)drPO["Nama"]) + "SP";
+                newCol.Resizable = DataGridViewTriState.False;
+                newCol.DataPropertyName = finishingDataGridColumnNameFormater((string)drPO["Nama"]) + "SP";
+                newCol.ReadOnly = true;
+                newCol.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+                // attact column
+                addfinishingGridMaterial.Columns.Add(newCol);
+            }
+
+            // add keterangan column
+            DataGridViewTextBoxColumn colKet = new DataGridViewTextBoxColumn();
+            colKet.HeaderText = "";
+            colKet.Name = "addgrdOptKet";
+            colKet.Resizable = DataGridViewTriState.False;
+            colKet.ReadOnly = true;
+            colKet.DataPropertyName = "Keterangan";
+            colKet.Width = 300;
+            addfinishingGridMaterial.Columns.Add(colKet);
+
+            //gridOpt.DataSource = this.dtOptMat;
+
+
+            // addding columns on datagrid header
+            // bersihkan dulu awalnya.
+            addfinishingGridMaterialHeader.Columns.Clear();
+
+            DataGridViewTextBoxColumn colHTgl = new DataGridViewTextBoxColumn();
+            colHTgl.HeaderText = "Tgl";
+            colHTgl.Name = "addheaderTgl";
+            colHTgl.Resizable = DataGridViewTriState.False;
+            colHTgl.ReadOnly = true;
+            colHTgl.DataPropertyName = "headerTgl";
+            colHTgl.Width = 100;
+            addfinishingGridMaterialHeader.Columns.Add(colHTgl);
+
+            DataGridViewTextBoxColumn colHMaterial = new DataGridViewTextBoxColumn();
+            colHMaterial.HeaderText = "Material";
+            colHMaterial.Name = "addheaderMaterial";
+            colHMaterial.Resizable = DataGridViewTriState.False;
+            colHMaterial.ReadOnly = true;
+            colHMaterial.DataPropertyName = "headerMaterial";
+            colHMaterial.Width = 200;
+            addfinishingGridMaterialHeader.Columns.Add(colHMaterial);
+
+            // panjang rows
+            int qtyColsWidthEach = 100;
+            int qtyColsWidth = qtyColsWidthEach * qtyColsCount;
+
+            DataGridViewTextBoxColumn colHOK = new DataGridViewTextBoxColumn();
+            colHOK.HeaderText = "OK";
+            colHOK.Name = "addheaderOK";
+            colHOK.Resizable = DataGridViewTriState.False;
+            colHOK.ReadOnly = true;
+            colHOK.DataPropertyName = "headerOK";
+            colHOK.Width = qtyColsWidth;
+            addfinishingGridMaterialHeader.Columns.Add(colHOK);
+
+            DataGridViewTextBoxColumn colHSP = new DataGridViewTextBoxColumn();
+            colHSP.HeaderText = "SP";
+            colHSP.Name = "addheaderOK";
+            colHSP.Resizable = DataGridViewTriState.False;
+            colHSP.ReadOnly = true;
+            colHSP.DataPropertyName = "headerOK";
+            colHSP.Width = qtyColsWidth;
+            addfinishingGridMaterialHeader.Columns.Add(colHSP);
+
+            DataGridViewTextBoxColumn colHKet = new DataGridViewTextBoxColumn();
+            colHKet.HeaderText = "KETERANGAN";
+            colHKet.Name = "addheaderKet";
+            colHKet.Resizable = DataGridViewTriState.False;
+            colHKet.ReadOnly = true;
+            colHKet.DataPropertyName = "headerKet";
+            colHKet.Width = 300;
+            addfinishingGridMaterialHeader.Columns.Add(colHKet);
+        }
+
+        private void addfinishingGridMaterial_Scroll(object sender, ScrollEventArgs e)
+        {
+            if (e.ScrollOrientation == ScrollOrientation.HorizontalScroll)
+            {
+                addfinishingGridMaterialHeader.HorizontalScrollingOffset = addfinishingGridMaterial.HorizontalScrollingOffset;
+            }
+        }
+
+        private void addfinishingGridOperator_CellEnter(object sender, DataGridViewCellEventArgs e)
+        {
+            loadAddFinishingGridMaterial();
+        }
+
+        private void addfinishingCmdClose_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void addfinishingCmdDelete_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void LoadWO(Guid MaterialRowID)
+        {
+            DataTable dt = new DataTable();
+            using (Database db = new Database())
+            {
+                db.Commands.Add(db.CreateCommand("ISAPabrikProduksi.dbo.vsp_wo_linkhpwo"));
+                db.Commands[0].Parameters.Add(new Parameter("@IDMaterial", SqlDbType.UniqueIdentifier, MaterialRowID));
+                dt = db.Commands[0].ExecuteDataTable();
+            }
+
+            if (dt.Rows.Count > 0)
+            {
+                gridWorkOrder.DataSource = dt;
+            }
+            else
+            {
+                gridWorkOrder.DataSource = null;
+            }
+        }
+
+        private void cmdCloseP_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void dgvPenunjangH_Click(object sender, EventArgs e)
+        {
+            SetGrid = SelectGrid.PenunjangHeader;
+        }
+
+        private void dgvPenunjangD_Click(object sender, EventArgs e)
+        {
+            SetGrid = SelectGrid.PenunjangDetail;
+        }
+
+        private void dgvPenunjangM_Click(object sender, EventArgs e)
+        {
+            SetGrid = SelectGrid.PenunjangMould;
+        }
+
+        private void cmdAddP_Click(object sender, EventArgs e)
+        {
+            this.MainBtn = MainButton.ADD;
+
+            // pilih berdasarkan grid yang diklik
+            if (SetGrid == SelectGrid.PenunjangHeader) // grid pertama (proses produksi)
+            {
+                Guid cboLiniVal = (Guid)cboLiniP.SelectedValue;
+                String cboLiniText = (String)cboLiniP.Text;
+                Action _LoadHPWO = this.LoadHPWOP;
+
+                frmWOAluProses frmAdd = new Produksi.frmWOAluProses(cboLiniVal, cboLiniText, MainBtn, _LoadHPWO);
+                frmAdd.ShowDialog();
+
+                //string NoProses = frmAdd.NoProses;
+                //dgvPenunjangH.FindRow("NoProses", NoProses);
+            }
+            else if (SetGrid == SelectGrid.PenunjangDetail) // grid Kedua
+            {
+                frmPenunjang frmAdd = new frmPenunjang(this);
+
+                DateTime tglProses = (DateTime)dgvPenunjangH.SelectedCells[0].OwningRow.Cells["TglProsesP"].Value;
+
+                frmAdd.NoProses = dgvPenunjangH.SelectedCells[0].OwningRow.Cells["NoProsesP"].Value.ToString();
+                frmAdd.TglProses = tglProses.ToString("dd MMMM yyyy");
+                frmAdd.Shift = dgvPenunjangH.SelectedCells[0].OwningRow.Cells["ShiftP"].Value.ToString();
+                frmAdd.NamaProses = dgvPenunjangH.SelectedCells[0].OwningRow.Cells["NmProsesP"].Value.ToString();
+                frmAdd.IDHPWO = (Guid)dgvPenunjangH.SelectedCells[0].OwningRow.Cells["RowIDP"].Value;
+                frmAdd.ShowDialog();
+            }
+        }
+
+        private void btnSearch_Click(object sender, EventArgs e)
+        {
+            LoadHPWOP();
+        }
+
+        private void dgvPenunjangH_SelectionRowChanged(object sender, EventArgs e)
+        {
+            if (dgvPenunjangH.SelectedCells.Count > 0)
+            {
+                IDHeader = (Guid)Class.Tools.isNullRowID(dgvPenunjangH.SelectedCells[0].OwningRow.Cells["RowIDP"].Value);
+                // load grid kedua
+                LoadHPWODPenunjang(IDHeader);
+                // Load grid Ketiga
+                LoadPenunjang(IDHeader);
+            }
+        }
+
+        public void LoadHPWODPenunjang(Guid ID)
+        {
+            // Setting data for HPWOD
+            dgvPenunjangD.AutoGenerateColumns = false;
+            DataTable dtHPWOD = Class.Produksi.WorkOrder.ViewProsesProdDetailNext(ID);
+            dgvPenunjangD.DataSource = dtHPWOD;
+        }
+
+        public void LoadPenunjang(Guid ID)
+        {
+            dgvPenunjangM.AutoGenerateColumns = false;
+            DataTable dtPenunjang = Class.Produksi.WorkOrder.ViewProsesProdPenunjang(ID);
+            dgvPenunjangM.DataSource = dtPenunjang;
+        }
+
+        private void cmdEditP_Click(object sender, EventArgs e)
+        {
+            this.MainBtn = MainButton.EDIT;
+
+            // pilih berdasarkan grid yang diklik
+            if (SetGrid == SelectGrid.PenunjangHeader) // grid pertama (proses produksi)
+            {
+                // just validation
+                int numRowsProduksiWO = dgvPenunjangH.Rows.Count;
+                if (numRowsProduksiWO <= 0)
+                {
+                    MessageBox.Show("Tidak Ada Proses Produksi");
+                    return;
+                }
+
+                Guid cboLiniVal = (Guid)cboLini.SelectedValue;
+                String cboLiniText = (String)cboLini.Text;
+                Action _LoadHPWO = this.LoadHPWO;
+
+                frmWOAluProses EditForm = new frmWOAluProses(cboLiniVal, cboLiniText, MainBtn, _LoadHPWO);
+
+                // send variable for form populating
+                EditForm.IDHeader = (Guid)dgvPenunjangH.SelectedCells[0].OwningRow.Cells["RowIDP"].Value;
+                EditForm.NoProses = (string)dgvPenunjangH.SelectedCells[0].OwningRow.Cells["NoProsesP"].Value;
+                EditForm.TglProses = (DateTime)dgvPenunjangH.SelectedCells[0].OwningRow.Cells["TglProsesP"].Value;
+                EditForm.ProsesKe = (int)dgvPenunjangH.SelectedCells[0].OwningRow.Cells["ProsesKeP"].Value;
+                EditForm.Shift = (int)dgvPenunjangH.SelectedCells[0].OwningRow.Cells["ShiftP"].Value;
+                EditForm.ManPower = (int)dgvPenunjangH.SelectedCells[0].OwningRow.Cells["ManPowerP"].Value;
+                EditForm.Operator = (string)Tools.isNull(dgvPenunjangH.SelectedCells[0].OwningRow.Cells["OperatorP"].Value, string.Empty);
+                EditForm.JamDari = (TimeSpan)dgvPenunjangH.SelectedCells[0].OwningRow.Cells["JamAwalP"].Value;
+                EditForm.JamKe = (TimeSpan)dgvPenunjangH.SelectedCells[0].OwningRow.Cells["JamAkhirP"].Value;
+                EditForm.Keterangan = (string)dgvPenunjangH.SelectedCells[0].OwningRow.Cells["KeteranganP"].Value;
+                EditForm.LiniProduksi = (Guid)dgvPenunjangH.SelectedCells[0].OwningRow.Cells["IDLiniP"].Value;
+                //EditForm.IDMesin = (Guid)dgvPenunjangH.SelectedCells[0].OwningRow.Cells["IDMesin"].Value;
+
+                EditForm.ShowDialog();
+
+                // set selected grid's row.
+                //dgvPenunjangH.FindRow("NoProses", EditForm.NoProses);
+            }
+            else if (SetGrid == SelectGrid.PenunjangDetail) // grik kedua (hasil produksi)
+            {
+                // valisasi aja
+                int numRowsKomponenMat = dgvPenunjangD.Rows.Count;
+                if (numRowsKomponenMat <= 0)
+                {
+                    MessageBox.Show("Tidak Ada Material Hasil");
+                    return;
+                }
+                int numRowsProduksiWO = dgvPenunjangH.Rows.Count;
+                if (numRowsProduksiWO <= 0)
+                {
+                    MessageBox.Show("Tidak Ada Proses Produksi");
+                    return;
+                }
+
+                frmPenunjang editMaterial = new frmPenunjang(this);
+
+                DateTime tglProses = (DateTime)dgvPenunjangH.SelectedCells[0].OwningRow.Cells["TglProsesP"].Value;
+
+                editMaterial.NoProses = dgvPenunjangH.SelectedCells[0].OwningRow.Cells["NoProsesP"].Value.ToString();
+                editMaterial.TglProses = tglProses.ToString("dd MMMM yyyy");
+                editMaterial.Shift = dgvPenunjangH.SelectedCells[0].OwningRow.Cells["ShiftP"].Value.ToString();
+                editMaterial.NamaProses = dgvPenunjangH.SelectedCells[0].OwningRow.Cells["NmProsesP"].Value.ToString();
+                editMaterial.IDHPWO = (Guid)dgvPenunjangH.SelectedCells[0].OwningRow.Cells["RowIDP"].Value;
+                editMaterial.ShowDialog();
+             }
+        }
+
+        private void cboLiniP_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (cboLiniP.ValueMember.ToString() != "")
+            {
+                if (dgvPenunjangH.DataSource != null)
+                {
+                    (dgvPenunjangH.DataSource as DataTable).DefaultView.RowFilter = "NmLine = '" + Class.Tools.isNull(cboLiniP.Text, "") + "'";
+                    if (dgvPenunjangH.Rows.Count == 0)
+                    {
+                        (dgvPenunjangH.DataSource as DataTable).DefaultView.RowFilter = "";
+                    }
+                }
+            }
+        }
+
+        public static void Delete(ref Database db, ref int looper, Guid ID, string Jenis)
+        {
+            db.Commands.Add(db.CreateCommand("ISAPabrikProduksi.dbo.psp_penunjang_del"));
+            db.Commands[looper].Parameters.Add(new Parameter("@RowID", SqlDbType.UniqueIdentifier, ID));
+            db.Commands[looper].Parameters.Add(new Parameter("@Jenis", SqlDbType.VarChar, Jenis));
+            looper++;
+        }
+
+        private void cmdDeleteP_Click(object sender, EventArgs e)
+        {
+            // get hpwo
+            Guid IDHeaderP = (Guid)Class.Tools.isNullRowID(dgvPenunjangH.SelectedCells[0].OwningRow.Cells["RowidP"].Value);
+            if (SetGrid == SelectGrid.PenunjangHeader)
+            {
+                //Delete Header
+                // just a validation ...
+                int numRowsProduksiWO = dgvPenunjangH.Rows.Count;
+                if (numRowsProduksiWO <= 0)
+                {
+                    MessageBox.Show("Tidak Ada Proses Produksi");
+                    return;
+                }
+
+                DataTable dtHPWOD = Class.Produksi.WorkOrder.ViewProsesProdDetailNext(IDHeader);
+                DataTable dtPenunjang = Class.Produksi.WorkOrder.ViewProsesProdPenunjang(IDHeader);
+
+                if (dtHPWOD.Rows.Count > 0 || dtPenunjang.Rows.Count > 0)
+                {
+                    MessageBox.Show("Tidak bisa dihapus. Masih punya daftar \"MATERIAL PENUNJANG\"", "", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+                else
+                {
+                    DialogResult tanya = MessageBox.Show("Anda ingin menghapus data proses ?", "Perhatian!", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    if (tanya == DialogResult.Yes)
+                    {
+                        // preparation for delete transaction
+                        Database dbDelete = new Database(Class.GlobalVar.DBPabrikProduksi);
+                        try
+                        {
+                            int looper = 0;
+
+                            // delete material
+                            Delete(ref dbDelete, ref looper, IDHeader, "H");
+
+                            dbDelete.BeginTransaction();
+                            // excuting added db exec with looper chainning for delete
+                            for (int i = 0; i < looper; i++)
+                            {
+                                dbDelete.Commands[i].ExecuteNonQuery();
+                            }
+                            dbDelete.CommitTransaction();
+                        }
+                        catch (Exception ex)
+                        {
+                            dbDelete.RollbackTransaction();
+                            MessageBox.Show("Error : " + ex.Message);
+                        }
+                        LoadHPWOP();
+                    }
+                }
+            }
+            else
+                if (SetGrid == SelectGrid.PenunjangDetail)
+                {
+                    //Delete Material
+
+                    //get hpwokd datatable dengan id hpwod
+                    Guid IDHPWOD = (Guid)dgvPenunjangD.SelectedCells[0].OwningRow.Cells["RowIDPD"].Value;
+                    DialogResult tanya = MessageBox.Show("Anda ingin menghapus data Material ?", "Perhatian !", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    if (tanya == DialogResult.Yes)
+                    {
+                        // preparation for delete transaction
+                        Database dbDelete = new Database(Class.GlobalVar.DBPabrikProduksi);
+                        try
+                        {
+                            int looper = 0;
+
+                            // delete material
+                            Delete(ref dbDelete, ref looper, IDHPWOD, "M");
+
+                            dbDelete.BeginTransaction();
+                            // excuting added db exec with looper chainning for delete
+                            for (int i = 0; i < looper; i++)
+                            {
+                                dbDelete.Commands[i].ExecuteNonQuery();
+                            }
+                            dbDelete.CommitTransaction();
+                        }
+                        catch (Exception ex)
+                        {
+                            dbDelete.RollbackTransaction();
+                            MessageBox.Show("Error : " + ex.Message);
+                        }
+                        LoadHPWODPenunjang(IDHeaderP);
+                    }
+                }
+                else
+                    if (SetGrid == SelectGrid.PenunjangMould)
+                    {
+                        //Delete Mould
+                        //get hpwokd datatable dengan id hpwod
+                        Guid IDPenunjang = (Guid)dgvPenunjangM.SelectedCells[0].OwningRow.Cells["RowIDPM"].Value;
+                        DialogResult tanya = MessageBox.Show("Anda ingin menghapus data Proses Mould ?", "Perhatian !", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                        if (tanya == DialogResult.Yes)
+                        {
+                            // preparation for delete transaction
+                            Database dbDelete = new Database(Class.GlobalVar.DBPabrikProduksi);
+                            try
+                            {
+                                int looper = 0;
+
+                                // delete material
+                                Delete(ref dbDelete, ref looper, IDPenunjang, "P");
+
+                                dbDelete.BeginTransaction();
+                                // excuting added db exec with looper chainning for delete
+                                for (int i = 0; i < looper; i++)
+                                {
+                                    dbDelete.Commands[i].ExecuteNonQuery();
+                                }
+                                dbDelete.CommitTransaction();
+                            }
+                            catch (Exception ex)
+                            {
+                                dbDelete.RollbackTransaction();
+                                MessageBox.Show("Error : " + ex.Message);
+                            }
+                            LoadPenunjang(IDHeaderP);
+                        }
+                    }
+        }
+
+        public void ReloadQC(string NoProses)
+        {
+            LoadQC();
+            dgvQC.FindRow("RowIDQC", NoProses);
+        }
+
+        private void LoadQC()
+        {
+            dgvQC.DataSource = Class.Produksi.ProsesMachining.ViewQC(rdTanggalQC.FromDate.Value, rdTanggalQC.ToDate.Value, (Guid)cboLiniQC.SelectedValue);
+        }
+
+        private void cmdCloseQC_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void cmdAddQC_Click(object sender, EventArgs e)
+        {
+            frmProsesQCCheck frm = new frmProsesQCCheck(Guid.Empty, (Guid)cboLiniQC.SelectedValue, (String)cboLiniQC.Text, this);
+            frm.MainBtn = frmProsesQCCheck.MainButton.ADD;
+            frm.ShowDialog();
+        }
+
+        private void cmdEditQC_Click(object sender, EventArgs e)
+        {
+            if (dgvQC.Rows.Count <= 0)
+            {
+                MessageBox.Show("Tidak Ada Data QC");
+                return;
+            }
+            frmProsesQCCheck frm = new frmProsesQCCheck(Guid.NewGuid(), (Guid)cboLiniQC.SelectedValue, (String)cboLiniQC.Text, this);
+            frm.MainBtn = frmProsesQCCheck.MainButton.EDIT;
+            frm.QCRowID = (Guid)dgvQC.SelectedCells[0].OwningRow.Cells["RowIDQC"].Value;
+            frm.Shift = (int)dgvQC.SelectedCells[0].OwningRow.Cells["ShiftQC"].Value;
+            frm.IDMaterial = (Guid)dgvQC.SelectedCells[0].OwningRow.Cells["IDMaterialQC"].Value;
+            frm.KdMaterial = (string)dgvQC.SelectedCells[0].OwningRow.Cells["KdMaterialQC"].Value;
+            frm.NmMaterial = (string)dgvQC.SelectedCells[0].OwningRow.Cells["NmMaterialQC"].Value;
+            frm.IDLiniProduksi = (Guid)dgvQC.SelectedCells[0].OwningRow.Cells["IDLiniQC"].Value;
+            frm.IDProses = (Guid)dgvQC.SelectedCells[0].OwningRow.Cells["IDProsesQC"].Value;
+            frm.TglProses = (DateTime)dgvQC.SelectedCells[0].OwningRow.Cells["TglProsesQC"].Value;
+            frm.Qtycek = (double)dgvQC.SelectedCells[0].OwningRow.Cells["TQtyQC"].Value;
+            frm.QtySP = (double)dgvQC.SelectedCells[0].OwningRow.Cells["QtySPQC"].Value;
+            frm.SPKeropos = (double)dgvQC.SelectedCells[0].OwningRow.Cells["QtyKroposQC"].Value;
+            frm.SPMeleset = (double)dgvQC.SelectedCells[0].OwningRow.Cells["QtyMelesetQC"].Value;
+            frm.QtyOK = (double)dgvQC.SelectedCells[0].OwningRow.Cells["QtyOKQC"].Value;
+            frm.Operator = (string)dgvQC.SelectedCells[0].OwningRow.Cells["OperatorQC"].Value;
+            frm.Keterangan = (string)dgvQC.SelectedCells[0].OwningRow.Cells["CatatanQC"].Value;
+            frm.ShowDialog();
+        }
+
+        private void cmdDelQC_Click(object sender, EventArgs e)
+        {
+            if (dgvQC.SelectedCells.Count > 0)
+            {
+                try
+                {
+                    if (MessageBox.Show("Yakin akan dihapus?", "Konfirmasi", MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) == DialogResult.Yes)
+                    {
+                        using (Database db = new Database())
+                        {
+                            Command cmd = db.CreateCommand("Isapabrikproduksi.dbo.psp_machining_del_QC");
+                            cmd.AddParameter("@RowID", SqlDbType.UniqueIdentifier, (Guid)dgvQC.SelectedCells[0].OwningRow.Cells["RowIDQC"].Value);
+                            cmd.ExecuteNonQuery();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+                btnSearchQC.PerformClick();
+            }
+        }
+
+        private void btnSearchQC_Click(object sender, EventArgs e)
+        {
+            LoadQC();
+        }
+
+        private void cboLiniQC_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (cboLiniQC.ValueMember.ToString() != "")
+            {
+                if (dgvQC.DataSource != null)
+                {
+                    (dgvQC.DataSource as DataTable).DefaultView.RowFilter = "NmLine = '" + Class.Tools.isNull(cboLiniQC.Text, "") + "'";
+                    if (Class.Tools.isNull(cboLiniQC.Text, "") == "ALL")
+                    {
+                        (dgvQC.DataSource as DataTable).DefaultView.RowFilter = "";
+                    }
+                }
+            }
+        }
+
+        private void gridProduksiWO_SelectionRowChanged(object sender, EventArgs e)
+        {
+            onEnterGridProduksiWO();
+        }
+
+        public void LoadHPWO(string NoProses)
+        {
+            //gridProduksiWO.DataSource = Class.Produksi.WorkOrder.ViewProsesProd(rTanggal.FromDate.Value, rTanggal.ToDate.Value, Guid.Empty);
+            //LoadHPWO();
+            gridProduksiWO.FindRow("RowIDH", NoProses);
+        }
+
+    }
+}

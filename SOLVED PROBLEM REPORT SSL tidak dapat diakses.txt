@@ -1,0 +1,7 @@
+REPORT SSL TIDAK DAPAT DIAKSES
+
+->Buka epicorDB 
+->start 
+->SQL service manajemen 
+-> SQL SERVICE
+->restart sql reporting 

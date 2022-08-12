@@ -1,0 +1,37 @@
+USE [ISAPabrik]
+GO
+/****** Object:  StoredProcedure [dbo].[rsp_materialSayyid]    Script Date: 07/08/2022 10:06:24 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		Sayyid
+-- Create date: <Create Date,,>
+-- Description:	<Description,,>
+-- =============================================
+ALTER PROCEDURE [dbo].[rsp_materialSayyid]
+	-- Add the parameters for the stored procedure here
+	@namaMaterial varchar(MAX) = null
+AS
+BEGIN
+	-- SET NOCOUNT ON added to prevent extra result sets from
+	-- interfering with SELECT statements.
+	
+	
+	--declare @namaMaterial varchar(MAX) = 'break'
+
+SELECT 
+		KdMaterial,
+		NmMaterial,
+		Type,
+		Satuan,
+		case
+		when Status = 1 THEN 'Aktif'
+		else
+		'Pasif'
+		END Status
+FROM ISAPabrik.dbo.Material
+WHERE NmMaterial LIKE '%'+@namaMaterial+'%'
+
+END

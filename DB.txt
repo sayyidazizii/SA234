@@ -1,0 +1,33 @@
+SERVER ISA LIVE 
+131.68.5.221,1117
+User	: sa
+Pw	: Admin29
+APP 
+user : DIAN11/54321
+-----------------------------
+SERVER ISA DEV
+131.68.5.220,1117
+User	: sa
+Pw	: Admin29 / ÒäÜæn|
+user : DIAN11/54321
+
+Nakayama
+131.68.5.220,1117
+Admin29 / ÒäÜæn|
+
+Sinar agung
+131.68.5.220,1433
+Admin17 / ÒäÜælx
+-----------------------------
+SERVER EPICOR 
+anydesk : EPICORDb
+pw : Admin1701
+APP
+manager
+konspiras1
+-----------------------------
+part SASS / EPICOR
+edp11
+54511palur
+
+

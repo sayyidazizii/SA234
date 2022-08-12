@@ -1,0 +1,1389 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Windows.Forms;
+using ISA.Pabrik.Nakayama.Produksi;
+using ISA.DAL;
+using System.IO;
+
+namespace ISA.Pabrik.Nakayama.Produksi
+{
+    public partial class frmWOAluProses : ISA.Pabrik.Nakayama.Controls.BaseForm
+    {
+        // Lini Produksi dari combobox kanan atas.
+        private Guid lnProUtamaID;
+        private String lnProUtamaName;
+        private HasilPlanWOAlu.MainButton parentBtn;
+        enum enSelectedPanel { Proses, Waktu }
+        enSelectedPanel _selectedPanel = enSelectedPanel.Proses;
+
+        // Public var for repopulate form
+        public Guid IDHeader;
+        public string NoProses;
+        public Guid LiniProduksi, ProsesProduksi;
+        public DateTime TglProses;
+        public int Shift;
+        public Guid IDMesin;
+        public int ManPower;
+        public string Operator;
+        public string Keterangan;
+        public DataTable dtCboProses;
+        public TimeSpan JamDari;
+        public TimeSpan JamKe;
+        public int ProsesKe;
+        public string Approved;
+        DataTable _detailWaktu;
+        DataTable _opr;
+        DataRow dr = null;
+        int _add = 2, delete = 3;
+        Class.enumClsState _state = Class.enumClsState.Empty;
+        ErrorProvider err = new ErrorProvider();
+
+        // Passing method dari parent form
+        private readonly Action _parentFormAction;
+
+        private Enum _parentMainButton;
+
+        public frmWOAluProses(Guid lnProUtama)
+        {
+            this.lnProUtamaID = lnProUtama;
+            InitializeComponent();
+        }
+
+        public frmWOAluProses(Guid lnProUtama, String lnProUtamaName)
+        {
+            this.lnProUtamaID = lnProUtama;
+            this.lnProUtamaName = lnProUtamaName;
+            InitializeComponent();
+        }
+
+        public frmWOAluProses(Guid lnProUtama, String lnProUtamaName, Action _parentFormAction)
+        {
+            this.lnProUtamaID = lnProUtama;
+            this.lnProUtamaName = lnProUtamaName;
+            this._parentFormAction = _parentFormAction;
+            InitializeComponent();
+        }
+
+        public frmWOAluProses(Guid lnProUtama, String lnProUtamaName, HasilPlanWOAlu.MainButton _parentBtn, Action _parentFormAction)
+        {
+            this.lnProUtamaID = lnProUtama;
+            this.lnProUtamaName = lnProUtamaName;
+            this._parentFormAction = _parentFormAction;
+            this._parentMainButton = _parentBtn;
+            this.parentBtn = _parentBtn;
+            InitializeComponent();
+        }
+
+        public frmWOAluProses(Form caller, Guid lnProUtama, String lnProUtamaName, HasilPlanWOAlu.MainButton _parentBtn, Action _parentFormAction)
+        {
+            this.lnProUtamaID = lnProUtama;
+            this.lnProUtamaName = lnProUtamaName;
+            this._parentFormAction = _parentFormAction;
+            this._parentMainButton = _parentBtn;
+            this.parentBtn = _parentBtn;
+            this.Caller = caller;
+            InitializeComponent();
+        }
+
+        private void cmdCancelH_Click(object sender, EventArgs e)
+        {
+            if (this.parentBtn == HasilPlanWOAlu.MainButton.ADD)
+            {
+                if (dgvMesin.Rows.Count > 0)
+                {
+                    updateAfreClose();
+                }
+            }
+            else
+            {
+                updateAfreClose();
+            }
+            this.Close();
+        }
+
+        private void formProsesAlu_Load(object sender, EventArgs e)
+        {
+            
+
+            this.CenterToScreen();
+
+            DataTable dtKode = Class.Execute.DBProsesMesinKode(-1);
+            cboJenis.Items.Clear();
+            cboJenis.ValueMember = "ID";
+            cboJenis.DisplayMember = "Keterangan";
+            cboJenis.DataSource = dtKode;
+
+            if (SecurityManager.UserID == "DIAN11")
+            {
+                cbapproved.Visible = true;
+            }
+            else
+            {
+                cbapproved.Visible = false;
+            }
+          
+            
+
+
+            // pisahkan berdasarkan action button dari parent
+            if (this.parentBtn == HasilPlanWOAlu.MainButton.ADD)
+            {
+                this.IDHeader = Guid.NewGuid();
+                kosong();
+                set_cboLini();
+                setCboProses();
+                createTabelWaktu();
+                dgvWaktu.DataSource = _detailWaktu;
+                cbapproved.Visible = false;
+               
+            }
+            else if(this.parentBtn == HasilPlanWOAlu.MainButton.EDIT)
+            {
+                refreshMesin();
+                formRepopulate();
+                cbapproved.Visible = true;
+
+            //edit SA
+            if (txtapby.Text == "")
+            {
+                cbapproved.Checked = false;          
+            }
+            else
+            {
+                cbapproved.Checked = true;   
+            }
+        
+                //Class.Produksi.WorkOrder.SaveHasilProduksi(IDHeader, txtNoProses.Text, txtTglProses.DateValue.Value, (Guid)cboProses.SelectedValue, (Guid)cboLini2.SelectedValue, txtKeterangan.Text, "", txtShift.GetIntValue, lookUpMesin1.MesinRowID, txtMP.GetIntValue, txtOpr.Text, txtJamDari.Text, txtJamKe.Text, txtProsesKe.GetIntValue);
+            }
+            else if(this.parentBtn == HasilPlanWOAlu.MainButton.DELETE)
+            {
+                
+            }
+            SetMenu(true);   
+            txtTglProses.Focus();
+            txtTglProses.SelectAll();
+            RefreshOperator();
+            pnlWaktu.Visible = false;
+            pnlWaktu.BringToFront();
+            ShowPanel(enSelectedPanel.Proses);
+        }
+
+        private void formRepopulate()
+        {
+
+            txtNoProses.Text = this.NoProses;
+            txtProsesKe.Text = this.ProsesKe.ToString();
+            txtShift.Text = this.Shift.ToString();
+            txtMP.Text = this.ManPower.ToString();
+            lookUpMesin1.SetMesin(this.IDMesin);
+            txtJamDari.Text = Convert.ToDateTime(Class.Tools.isNull(this.JamDari.ToString(), DateTime.Now)).ToString("HH:mm");
+            txtJamKe.Text = Convert.ToDateTime(Class.Tools.isNull(this.JamKe.ToString(), DateTime.Now)).ToString("HH:mm");
+            txtKeterangan.Text = this.Keterangan;
+            txtTglProses.Text = this.TglProses.ToString("dd/MM/yyyy");
+            
+            set_cboLini();
+            cboLini2.SelectedValue = this.LiniProduksi;
+            setCboProses();
+            cboProses.SelectedValue = this.ProsesProduksi;
+        }
+
+        /*
+         Dijalankan untuk reset Form.
+         */
+        private void kosong()
+        {
+            txtNoProses.Text = Class.Numerator.GetNumberingLook("ProduksiLini");
+            txtTglProses.Text = Convert.ToDateTime(Class.GlobalVar.DateTrx).ToString("dd/MM/yyyy");
+            txtShift.Text = "0";
+            lookUpMesin1.txtNamaMesin.Text = "";
+            txtMP.Text = "0";
+            txtKeterangan.Text = "";
+            txtJamDari.Text = Convert.ToDateTime(DateTime.Now).ToString("HH:mm");
+            txtJamKe.Text = Convert.ToDateTime(DateTime.Now).ToString("HH:mm");
+            txtTotalShoot.Text = "0";
+        }
+
+        void ShowPanel(enSelectedPanel tSelected)
+        {
+            try
+            {
+                pnlProses.Enabled = (tSelected == enSelectedPanel.Proses);
+                cmdSaveH.Enabled = (tSelected == enSelectedPanel.Proses);
+                btnAddJam.Enabled = (tSelected == enSelectedPanel.Proses);
+                btnEditJam.Enabled = (tSelected == enSelectedPanel.Proses);
+                btnDelJam.Enabled = (tSelected == enSelectedPanel.Proses);
+                //cmdClose.Enabled = (tSelected == enSelectedPanel.Proses);
+                pnlWaktu.Visible = (tSelected == enSelectedPanel.Waktu);
+                pnlWaktu.Enabled = (tSelected == enSelectedPanel.Waktu);
+                //if((tSelected == enSelectedPanel.Waktu))
+                //pnlWaktu.BringToFront();
+                _selectedPanel = tSelected;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
+
+        /*
+         * Mengeset isi dari combobo lini produksi (cboLini2) di form ini 
+         * dengan mengacu pada combo "lini produksi kanan atas"(cboLini) .
+         */
+        private void set_cboLini()
+        {
+            DataTable dt = new DataTable();
+
+            // fill datatable form db
+            dt = Class.Execute.LookUpUserLine(SecurityManager.UserID);
+
+            // inserting list to this combobox
+            cboLini2.DataSource = dt;
+            cboLini2.DisplayMember = "NmLine";
+            cboLini2.ValueMember = "LineProduksiRowID";
+
+            // set selected value
+            if (this.lnProUtamaID != Guid.Empty)
+            {
+                cboLini2.SelectedValue = this.lnProUtamaID;
+            }
+            else if(this.lnProUtamaID == Guid.Empty)
+            {
+                cboLini2.SelectedIndex = 0;
+            }
+            
+        }
+
+        private void cboLini2_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            // memastikan ...
+            if (cboLini2.ValueMember != "")
+            {
+                setCboProses();
+                //if (cboLini2.Text == "PENUNJANG NAKAYAMA")
+                //{
+                //    SetMenu(false);
+                //}
+                //else
+                //{
+                //    SetMenu(true);
+                //}
+                lookUpMesin1.LiniID = (Guid)cboLini2.SelectedValue;
+            }
+        }
+
+        private void setCboProses()
+        {
+            Guid cboLini2Val = (Guid)cboLini2.SelectedValue;
+            cboProses.DataSource = Class.Produksi.WorkOrder.GetProsesWIP(cboLini2Val);
+            cboProses.DisplayMember = "Nama";
+            cboProses.ValueMember = "RowID";
+        }
+
+        void HitungJamShift()
+        {
+            while (dgvWaktu.Rows.Count != 0)
+            {
+                dgvWaktu.Rows.RemoveAt(0);
+            }
+            int shiftVal = txtShift.GetIntValue;
+            string hari = txtTglProses.DateValue.Value.ToString("ddd");
+
+            DataTable dt = null;
+            using (Database db = new Database())
+                try
+                {
+                    Command cmd = db.CreateCommand("vsp_JamKerjaProduksi");
+                    cmd.AddParameter("@TglProses", SqlDbType.Date, txtTglProses.DateValue.Value);
+                    cmd.AddParameter("@Shift", SqlDbType.Int, shiftVal);
+                    cmd.AddParameter("@Jenis", SqlDbType.VarChar, "01");
+                    dt = cmd.ExecuteDataTable();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                }
+
+            txtJamDari.Text = dt.Rows[0]["jam1"].ToString();
+            txtJamKe.Text = dt.Rows[0]["jam9"].ToString();
+
+            if (hari == "Sat")
+            {
+                // setting jam kerja berdasarkan shift hari sabtu
+                SimpanWaktuShift(dt.Rows[0]["jam0"].ToString(), dt.Rows[0]["jam1"].ToString(), 18, "Breafing", "On", "");
+                SimpanWaktuShift(dt.Rows[0]["jam1"].ToString(), dt.Rows[0]["jam2"].ToString(), 0, "Produksi", "On", "");
+                SimpanWaktuShift(dt.Rows[0]["jam2"].ToString(), dt.Rows[0]["jam3"].ToString(), 0, "Produksi", "On", "");
+                SimpanWaktuShift(dt.Rows[0]["jam3"].ToString(), dt.Rows[0]["jam4"].ToString(), 0, "Produksi", "On", "");
+                SimpanWaktuShift(dt.Rows[0]["jam4"].ToString(), dt.Rows[0]["jam5"].ToString(), 0, "Produksi", "On", "");
+                SimpanWaktuShift(dt.Rows[0]["jam5"].ToString(), dt.Rows[0]["jam9"].ToString(), 0, "Produksi", "On", "");
+                SimpanWaktuShift(dt.Rows[0]["jam9"].ToString(), dt.Rows[0]["jam10"].ToString(), 19, "5R", "On", "");
+            }
+            else
+            {
+
+                // setting jam kerja berdasarkan shift hari selain sabtu
+                SimpanWaktuShift(dt.Rows[0]["jam0"].ToString(), dt.Rows[0]["jam1"].ToString(), 18, "Breafing", "On", "");
+                SimpanWaktuShift(dt.Rows[0]["jam1"].ToString(), dt.Rows[0]["jam2"].ToString(), 0, "Produksi", "On", "");
+                SimpanWaktuShift(dt.Rows[0]["jam2"].ToString(), dt.Rows[0]["jam3"].ToString(), 0, "Produksi", "On", "");
+                SimpanWaktuShift(dt.Rows[0]["jam3"].ToString(), dt.Rows[0]["jam4"].ToString(), 0, "Produksi", "On", "");
+                if (shiftVal == 2)
+                {
+                    SimpanWaktuShift(dt.Rows[0]["jam4"].ToString(), dt.Rows[0]["jam5"].ToString(), 1, "Istirahat", "Off", "");
+                }
+                else
+                {
+                    SimpanWaktuShift(dt.Rows[0]["jam4"].ToString(), dt.Rows[0]["jam5"].ToString(), 0, "Produksi", "On", "");
+                }
+                SimpanWaktuShift(dt.Rows[0]["jam5"].ToString(), dt.Rows[0]["jam6"].ToString(), 0, "Produksi", "On", "");
+                if (shiftVal == 2)
+                {
+                    SimpanWaktuShift(dt.Rows[0]["jam6"].ToString(), dt.Rows[0]["jam7"].ToString(), 0, "Produksi", "On", "");
+                }
+                else
+                {
+                    SimpanWaktuShift(dt.Rows[0]["jam6"].ToString(), dt.Rows[0]["jam7"].ToString(), 1, "Istirahat", "Off", "");
+                }
+                SimpanWaktuShift(dt.Rows[0]["jam7"].ToString(), dt.Rows[0]["jam8"].ToString(), 0, "Produksi", "On", "");
+                SimpanWaktuShift(dt.Rows[0]["jam8"].ToString(), dt.Rows[0]["jam9"].ToString(), 0, "Produksi", "On", "");
+                SimpanWaktuShift(dt.Rows[0]["jam9"].ToString(), dt.Rows[0]["jam10"].ToString(), 19, "5R", "On", "");
+            }
+        }
+
+        private void txtShift_Leave(object sender, EventArgs e)
+        {
+            int shiftVal = txtShift.GetIntValue;
+            if (shiftVal < 1 || shiftVal > 3)
+            {
+                MessageBox.Show("Shift hanya dapat diisi angka 1 s.d 3");
+                txtShift.Focus();
+                return;
+            }
+            //int shiftVal = txtShift.GetIntValue;
+            //string hari = txtTglProses.DateValue.Value.ToString("ddd");
+            //if (hari == "Sat")
+            //{
+            //    // setting jam kerja berdasarkan shift hari sabtu
+            //    if (shiftVal == 1)
+            //    {
+            //        txtJamDari.Text = "07:00";
+            //        txtJamKe.Text = "12:00";
+            //    }
+            //    else if (shiftVal == 2)
+            //    {
+            //        txtJamDari.Text = "12:00";
+            //        txtJamKe.Text = "17:00";
+            //    }
+            //    else if (shiftVal == 3)
+            //    {
+            //        txtJamDari.Text = "17:00";
+            //        txtJamKe.Text = "22:00";
+            //    }
+            //    else
+            //    {
+            //        MessageBox.Show("Shift hanya dapat diisi angka 1 s.d 3");
+            //        txtShift.Focus();
+            //    }
+            //}
+            //else
+            //{
+
+            //    // setting jam kerja berdasarkan shift hari selain sabtu
+            //    if (shiftVal == 1)
+            //    {
+            //        txtJamDari.Text = "07:00";
+            //        txtJamKe.Text = "15:00";
+            //    }
+            //    else if (shiftVal == 2)
+            //    {
+            //        txtJamDari.Text = "15:00";
+            //        txtJamKe.Text = "23:00";
+            //    }
+            //    else if (shiftVal == 3)
+            //    {
+            //        txtJamDari.Text = "23:00";
+            //        txtJamKe.Text = "07:00";
+            //    }
+            //    else
+            //    {
+            //        MessageBox.Show("Shift hanya dapat diisi angka 1 s.d 3");
+            //        txtShift.Focus();
+            //    }
+            //}
+        }
+
+        void InputWaktu(Class.enumClsState tState)
+        {
+            try
+            {
+                bool show = false;
+                dr = null;
+                switch (tState)
+                {
+                    case Class.enumClsState.New:
+                        DataTable dt = (DataTable)dgvWaktu.DataSource;
+                        dr = dt.Rows.Add();
+                        dr["JamAwal"] = "00:00";
+                        dr["JamAkhir"] = "00:00";
+                        dr["Kode"] = "0";// dv["Kode"].ToString();
+                        dr["Kondisi"] = "On";
+                        dr["Catatan"] = "Produksi"; // dv["Keterangan"].ToString();
+                        dr["Keterangan"] = "";
+                        show = true;
+                        break;
+                    case Class.enumClsState.Update:
+                        if (dgvWaktu.SelectedCells.Count > 0)
+                        {
+                            dr = (DataRow)(dgvWaktu.SelectedCells[0].OwningRow.DataBoundItem as DataRowView).Row;
+                            int a = int.Parse(dr["Kode"].ToString());
+                            if (string.IsNullOrEmpty(dr["Kondisi"].ToString())) dr["Kondisi"] = "On";
+                            show = true;
+                        }
+                        break;
+                }
+                if (show == true)
+                {
+                    txtJamAwal.Text = DateTime.Parse(dr["JamAwal"].ToString()).ToString("HH:mm");
+                    txtJamAkhir.Text = DateTime.Parse(dr["JamAkhir"].ToString()).ToString("HH:mm");
+                    cboJenis.SelectedValue = int.Parse(dr["Kode"].ToString());
+                    rdoOn.Checked = (dr["Kondisi"].ToString() != "Off");
+                    rdoOff.Checked = (dr["Kondisi"].ToString() == "Off");
+                    txtKeterangan.Text = dr["Keterangan"].ToString();
+                    _state = tState;
+                    ShowPanel(enSelectedPanel.Waktu);
+                    txtJamAwal.Focus();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+                //Error.LogError(ex);
+            }
+        }
+
+        void HitungDetailWaktu()
+        {
+            try
+            {
+                DataTable dt = (DataTable)dgvWaktu.DataSource;
+                double waktu = 0;
+                DateTime aw, ak;
+                TimeSpan t1 = new TimeSpan();
+                TimeSpan t2 = new TimeSpan();
+                foreach (DataRow r in dt.Rows)
+                {
+                    if (string.IsNullOrEmpty(r["Kondisi"].ToString()) || r["Kondisi"].ToString() != "Off")
+                    {
+                        aw = DateTime.Parse(r["JamAwal"].ToString());
+                        ak = DateTime.Parse(r["JamAkhir"].ToString());
+                        if (ak < aw) ak = ak.AddDays(1);
+                        t1 = t1.Add((ak - aw));
+                        if (r["Kode"].ToString() == "0") t2 = t2.Add((ak - aw));
+                        //waktu += t.TotalSeconds;
+                    }
+                }
+                txtWaktuOn.Text = t1.TotalHours.ToString("#,##0.00");
+                txtWaktuProduksi.Text = t2.TotalHours.ToString("#,##0.00");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+                //Error.LogError(ex);
+            }
+        }
+
+        /*
+         * Function untuk tombol save in form ini.
+         * Dia harus bisa handle untuk ADD dan EDIT.
+         */
+        private void cmdSaveH_Click(object sender, EventArgs e)
+        {
+
+            int shiftVal = txtShift.GetIntValue;
+         
+            if (shiftVal < 1 || shiftVal > 3)
+            {
+                MessageBox.Show("Shift hanya dapat diisi angka 1 s.d 3");
+                txtShift.Focus();
+                return;
+            }
+
+            if (dgvMesin.Rows.Count <= 0)
+            {
+                if (cboLini2.Text == "MELTING ALUMUNIUM NAKAYAMA" || cboLini2.Text == "CASTING ALUMUNIUM NAKAYAMA" || cboLini2.Text == "MACHINING NAKAYAMA")
+                {
+                    MessageBox.Show("Proses untuk Lini tersebut harus menggunakan mesin!");
+                    return;
+                }
+
+                
+            }
+
+            try
+            {
+              
+
+
+                txtJamDari.Text = txtJamDari.Text.Replace(".6", ":0");
+                txtJamKe.Text = txtJamKe.Text.Replace(".6", ":0");
+                txtJamDari.Text = txtJamDari.Text.Replace(".", ":");
+                txtJamKe.Text = txtJamKe.Text.Replace(".", ":");
+                txtJamDari.Text = txtJamDari.Text.Replace("24:", "00:");
+                txtJamKe.Text = txtJamKe.Text.Replace("24:", "00:");
+
+                if(this.parentBtn == HasilPlanWOAlu.MainButton.ADD)
+                {
+                    txtNoProses.Text = Class.Numerator.GetNumbering("ProduksiLini");
+                    this.NoProses = txtNoProses.Text;
+                    
+
+                    //edit SA
+                    //Simpan Hasil Proses WO dengan Mesin
+                    Class.Produksi.WorkOrder.SaveHasilProduksi(IDHeader, txtNoProses.Text, txtTglProses.DateValue.Value, (Guid)cboProses.SelectedValue, (Guid)cboLini2.SelectedValue, txtKeterangan.Text, "", txtShift.GetIntValue, Guid.Empty, txtMP.GetIntValue, "", txtJamDari.Text, txtJamKe.Text, txtProsesKe.GetIntValue);
+                    updateAfreSave();
+                }
+                else if(this.parentBtn == HasilPlanWOAlu.MainButton.EDIT)
+                {
+                    Guid IDHeader = this.IDHeader;
+                    txtNoProses.Text = Class.Numerator.GetNumbering("ProduksiLini");
+
+                    //Simpan Hasil Proses WO dengan Mesin
+                    Class.Produksi.WorkOrder.SaveHasilProduksi(IDHeader, txtNoProses.Text, txtTglProses.DateValue.Value, (Guid)cboProses.SelectedValue, (Guid)cboLini2.SelectedValue, txtKeterangan.Text, "", txtShift.GetIntValue, Guid.Empty, txtMP.GetIntValue, "", txtJamDari.Text, txtJamKe.Text, txtProsesKe.GetIntValue);
+                    updateAfreSave();
+                }
+                
+            }
+            catch (Exception ex) { Error.LogError(ex); }
+            finally
+            {
+                _parentFormAction();
+
+                if (this.Caller is HasilPlanWOAlu)
+                {
+                    HasilPlanWOAlu frm = new HasilPlanWOAlu();
+                    frm = (HasilPlanWOAlu)this.Caller;
+                    frm.LoadHPWO(IDHeader.ToString());
+                }
+
+                this.Close();
+            }
+        }
+
+        private void lookUpMouldProducts1_AfterSelect(object sender, EventArgs e)
+        {
+            try
+            {
+                txtStandardCavity.Text = lookUpMouldProducts1.MouldProducts.Cavity.ToString("#,##0.00");
+                txtStandardCT.Text = lookUpMouldProducts1.MouldProducts.StandardCT.ToString("#,##0.00");
+            }
+            catch (Exception ex)
+            {
+                Error.LogError(ex);
+            }
+        }
+
+        private void btnAddMesin_Click(object sender, EventArgs e)
+        {
+            if (lookUpMesin1.NamaMesin == "")
+            {
+                MessageBox.Show("Mesin Belum Dipilih");
+                lookUpMesin1.Focus();
+                return;
+            }
+            if (dgvMesin.Rows.Count > 0)
+            {
+                string nm = lookUpMesin1.NamaMesin;
+                foreach (DataGridViewRow r in dgvMesin.Rows)
+                {
+                    if (r.Cells["NmMesin"].Value.ToString() == nm)
+                    {
+                        MessageBox.Show("Mesin Sudah Di inputkan");
+                        return;
+                    }
+                }
+            }
+            //if (txtTotalShoot.Text == "0" || txtTotalShoot.Text == "")
+            //{
+            //    MessageBox.Show("Total shoot belum di isi");
+            //    txtTotalShoot.Focus();
+            //    return;
+            //}
+            if (lookUpMesin1.MesinRowID != Guid.Empty)
+            {
+                Guid PMRowID = Guid.NewGuid();
+                Guid MesinRowID = lookUpMesin1.MesinRowID;
+                int TotalShoot = (int)txtTotalShoot.GetDoubleValue;
+                HitungJamShift();
+                simpanMesin(PMRowID, IDHeader, MesinRowID, TotalShoot);
+                refreshMesin();
+                txtTotalShoot.Text = "0";
+            }
+        }
+
+        private void btnAddMould_Click(object sender, EventArgs e)
+        {
+            if (dgvMesin.Rows.Count <= 0)
+            {
+                MessageBox.Show("Tidak Ada Mesin");
+                lookUpMesin1.Focus();
+                return;
+            }
+            if (lookUpMouldProducts1.MouldProducts.namaMould == "")
+            {
+                MessageBox.Show("Mould Belum Dipilih");
+                lookUpMouldProducts1.Focus();
+                return;
+            }
+            if (lookUpMouldProducts1.MouldProducts.RowID != Guid.Empty && dgvMesin.Rows.Count > 0)
+            {
+                //Simpan Proses Mesin Mould
+                Guid PMRowID = (Guid)dgvMesin.SelectedCells[0].OwningRow.Cells["RowIDM"].Value;
+                    Guid MouldRowID = Guid.NewGuid();
+                    Guid MouldProductsRowID = (Guid)lookUpMouldProducts1.MouldProducts.RowID;
+                    int TotalCavity = (int)txtTotalCavity.GetDoubleValue;
+                    string ket = (string)txtCatatan.Text;
+                    simpanMould(MouldRowID, PMRowID, MouldProductsRowID, TotalCavity, ket);
+                    RefreshMould();
+            }
+
+        }
+
+        private void btnDelOpr_Click(object sender, EventArgs e)
+        {
+            if (dgvOperator.SelectedCells.Count > 0)
+                try
+                {
+                    if (MessageBox.Show("Yakin akan dihapus?", "Konfirmasi", MessageBoxButtons.YesNo,
+                                        MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) == DialogResult.Yes)
+                    {
+                        using (Database db = new Database())
+                            try
+                            {
+                                Guid _rowID = (Guid)dgvOperator.SelectedCells[0].OwningRow.Cells["RowIDO"].Value;
+                                Command cmd = db.CreateCommand("[psp_Alu_deleteOperator]");
+                                cmd.AddParameter("@rowid", SqlDbType.UniqueIdentifier, _rowID);
+                                cmd.ExecuteNonQuery();
+                                RefreshOperator();
+                                RefreshManPower();
+                            }
+                            catch (Exception ex)
+                            {
+                                throw ex;
+                            }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Error.LogError(ex);
+                }
+        }
+
+        private void btnAddOpr_Click(object sender, EventArgs e)
+        {
+            if (lookupKaryawan1.NamaKaryawan == "")
+            {
+                MessageBox.Show("Operator Belum Dipilih");
+                lookupKaryawan1.Focus();
+                return;
+            }
+
+            if (dgvOperator.Rows.Count > 0)
+            {
+                string _nmop = lookupKaryawan1.NamaKaryawan;
+                Guid _idop = lookupKaryawan1.RowID;
+
+                foreach (DataGridViewRow r in dgvOperator.Rows)
+                {
+                    string nmop = (string)r.Cells["NamaKaryawan"].Value;
+                    if (nmop == _nmop)
+                    {
+                        MessageBox.Show("Nama Operator " + _nmop + " sudah diinputkan");
+                        return;
+                    }
+                }
+            }
+
+            if (lookupKaryawan1.RowID != Guid.Empty)
+            {
+                Guid PMRowID = Guid.Empty;
+                if (dgvMesin.Rows.Count > 0)
+                {
+                    PMRowID = (Guid)Class.Tools.isNullRowID(dgvMesin.SelectedCells[0].OwningRow.Cells["RowIDM"].Value);
+                }
+                //Simpan Proses Mesin Operator
+                Guid PMORowID = Guid.NewGuid();
+                string Ket = (string)txtKetOP.Text;
+                SimpanOperator(PMORowID, PMRowID, lookupKaryawan1.RowID, Ket);
+                RefreshOperator();
+                RefreshManPower();
+            }
+        }
+
+        void RefreshManPower()
+        {
+            int _ManPower = 0;
+            _ManPower = dgvOperator.Rows.Count;
+            txtMP.Text = _ManPower.ToString();
+        }
+
+        void simpanMesin(Guid PMRowID, Guid IDHeader, Guid MesinRowID, int TotalShoot)
+        {
+            _detailWaktu = (DataTable)dgvWaktu.DataSource;
+            using (Database db = new Database())
+                try
+                {
+                    DateTime aw, ak;
+                    aw = DateTime.Parse(txtJamDari.Text);
+                    ak = DateTime.Parse(txtJamKe.Text);
+                    Command cmd = db.CreateCommand("psp_Alu_Add_PM");
+                    cmd.AddParameter("@RowID", SqlDbType.UniqueIdentifier, PMRowID);
+                    cmd.AddParameter("@Tanggal", SqlDbType.Date, txtTglProses.DateValue);
+                    cmd.AddParameter("@Reftipe", SqlDbType.Int, 1);
+                    cmd.AddParameter("@RefRowID", SqlDbType.UniqueIdentifier, IDHeader);
+                    cmd.AddParameter("@LineProduksiRowID", SqlDbType.UniqueIdentifier, (Guid)cboLini2.SelectedValue);
+                    cmd.AddParameter("@ProsesRowID", SqlDbType.UniqueIdentifier, (Guid)cboProses.SelectedValue);
+                    cmd.AddParameter("@MesinRowID", SqlDbType.UniqueIdentifier, MesinRowID);
+                    cmd.AddParameter("@TotalProses", SqlDbType.Int, TotalShoot);
+                    cmd.AddParameter("@WaktuProses", SqlDbType.Real, txtWaktuProduksi.GetDoubleValue);
+                    StringWriter w = new StringWriter();
+                    _detailWaktu.WriteXml(w);
+                    cmd.AddParameter("@DetailWaktu", SqlDbType.Xml, w.ToString().Replace("DocumentElement", "root"));
+                    cmd.AddParameter("@IsUser", SqlDbType.VarChar, SecurityManager.UserID);
+                    cmd.AddParameter("@flag", SqlDbType.Int, _add);
+                    cmd.ExecuteNonQuery();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                }
+        }
+
+        void simpanMould(Guid RowID, Guid IDProsesMesin, Guid MouldProductsRowID, int TotalCavity, string Keterangan)
+        {
+            using (Database db = new Database())
+                try
+                {
+                    Command cmd = db.CreateCommand("psp_Alu_Add_PMMould");
+                    cmd.AddParameter("@RowID", SqlDbType.UniqueIdentifier, RowID);
+                    cmd.AddParameter("@ProsesMesinRowID", SqlDbType.UniqueIdentifier, IDProsesMesin);
+                    cmd.AddParameter("@MouldProductsRowID", SqlDbType.UniqueIdentifier, MouldProductsRowID);
+                    cmd.AddParameter("@TotalCavity", SqlDbType.Int, TotalCavity);
+                    cmd.AddParameter("@Keterangan", SqlDbType.VarChar, Keterangan);
+                    cmd.AddParameter("@IsUser", SqlDbType.VarChar, SecurityManager.UserID);
+                    cmd.AddParameter("@flag", SqlDbType.Int, _add);
+                    cmd.ExecuteNonQuery();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                }
+        }
+
+        void SimpanOperator(Guid PMORowID, Guid PMRowID, Guid KaryawanRowID, string ket)
+        {
+            using (Database db = new Database())
+                try
+                {
+                    Command cmd = db.CreateCommand("[psp_Alu_Add_PMOpr]");
+                    cmd.AddParameter("@RowID", SqlDbType.UniqueIdentifier, PMORowID);
+                    cmd.AddParameter("@ProsesMesinRowID", SqlDbType.UniqueIdentifier, PMRowID);
+                    cmd.AddParameter("@KaryawanRowID", SqlDbType.UniqueIdentifier, KaryawanRowID);
+                    cmd.AddParameter("@HPWORowID", SqlDbType.UniqueIdentifier, IDHeader);
+                    cmd.AddParameter("@Keterangan", SqlDbType.VarChar, ket);
+                    cmd.AddParameter("@IsUser", SqlDbType.VarChar, SecurityManager.UserID);
+                    cmd.AddParameter("@flag", SqlDbType.Int, _add);
+                    cmd.ExecuteNonQuery();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                }
+        }
+
+        private void createTabelWaktu()
+        {
+            _detailWaktu = new DataTable("DetailWaktu");
+            _detailWaktu.Columns.Add("JamAwal", typeof(DateTime));
+            _detailWaktu.Columns.Add("JamAkhir", typeof(DateTime));
+            _detailWaktu.Columns.Add("Kode", typeof(string));
+            _detailWaktu.Columns.Add("Kondisi", typeof(string));
+            _detailWaktu.Columns.Add("Catatan", typeof(string));
+            _detailWaktu.Columns.Add("Keterangan", typeof(string));
+        }
+
+        private void createTabelOpr()
+        {
+            _opr = new DataTable("Operator");
+            _opr.Columns.Add("NamaKaryawan", typeof(string));
+            _opr.Columns.Add("Keterangan", typeof(string));
+        }
+
+        public void refreshMesin()
+        {
+            DataTable dt = null;
+            using (Database db = new Database())
+                try
+                {
+                    Guid IDHeader = this.IDHeader;
+                    Command cmd = db.CreateCommand("[psp_ProsesMesin_LIST]");
+                    cmd.AddParameter("@HPWORowID", SqlDbType.UniqueIdentifier, IDHeader);
+                    dt = cmd.ExecuteDataTable();
+                    dgvMesin.DataSource = dt;
+
+                    if (dt.Rows.Count > 0)
+                    {
+                        RefreshMould();
+                        RefreshOperator();
+                    }
+                    else
+                    {
+                        dgvMould.DataSource = null;
+                        dgvOperator.DataSource = null;
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                }
+        }
+        public void RefreshMould()
+        {
+
+            try
+            {
+                DataTable dt = null;
+                if (dgvMesin.SelectedCells.Count > 0)
+                    dt = Class.Produksi.ProsesMesinMould.DBList(Guid.Empty, (Guid)dgvMesin.SelectedCells[0].OwningRow.Cells["RowIDM"].Value);
+                dgvMould.DataSource = dt;
+            }
+            catch (Exception ex)
+            {
+                //Error.LogError(ex);
+                MessageBox.Show(ex.Message);
+            }
+        }
+
+        public void RefreshOperator()
+        {
+            try
+            {
+                DataTable dt = null;
+                if (dgvMesin.SelectedCells.Count > 0)
+                {
+                    dt = Class.Produksi.ProsesMesinOperator.DBList(Guid.Empty, (Guid)dgvMesin.SelectedCells[0].OwningRow.Cells["RowIDM"].Value, Guid.Empty);
+                }
+                else
+                {
+                    dt = Class.Produksi.ProsesMesinOperator.DBList(Guid.Empty, Guid.Empty, IDHeader);
+                }
+                dgvOperator.DataSource = dt;
+                RefreshManPower();
+            }
+            catch (Exception ex)
+            {
+                //Error.LogError(ex);
+                MessageBox.Show(ex.Message);
+            }
+        }
+
+        public void updateAfreClose()
+        {
+            using (Database db = new Database())
+                try
+                {
+                    Guid IDHeader = this.IDHeader;
+                    Command cmd = db.CreateCommand("psp_ProsesMesin_Close");
+                    cmd.AddParameter("@HPWORowID", SqlDbType.UniqueIdentifier, IDHeader);
+                    cmd.ExecuteNonQuery();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                }
+
+        }
+
+        public void updateAfreSave()
+        {
+            _detailWaktu = (DataTable)dgvWaktu.DataSource;
+            using (Database db = new Database())
+                try
+                {
+                    Guid IDHeader = this.IDHeader;
+                    DateTime aw, ak;
+                    aw = DateTime.Parse(txtJamDari.Text);
+                    ak = DateTime.Parse(txtJamKe.Text);
+                    Command cmd = db.CreateCommand("[psp_ProsesMesin_Update]");
+                    cmd.AddParameter("@Tanggal", SqlDbType.Date, txtTglProses.DateValue);
+                    cmd.AddParameter("@HPWORowID", SqlDbType.UniqueIdentifier, IDHeader);
+                    cmd.AddParameter("@ProsesRowID", SqlDbType.UniqueIdentifier, (Guid)cboProses.SelectedValue);
+                    cmd.AddParameter("@LineProduksiROwID", SqlDbType.UniqueIdentifier, (Guid)cboLini2.SelectedValue);
+                    cmd.AddParameter("@WaktuProses", SqlDbType.Real, (ak - aw).TotalHours);
+                    cmd.AddParameter("@LastUpdatedBy", SqlDbType.VarChar, SecurityManager.UserID);
+                    //cmd.AddParameter("@Approvedby", SqlDbType.VarChar, SecurityManager.UserID);
+                    ///cmd.AddParameter("@ApprovedDate", SqlDbType.Date, txtapdate.Text);
+                    cmd.AddParameter("@Shift", SqlDbType.Int, txtShift.GetIntValue);
+                    if (dgvWaktu.Rows.Count > 0)
+                    {
+                        StringWriter w = new StringWriter();
+                        _detailWaktu.WriteXml(w);
+                        cmd.AddParameter("@DetailWaktu", SqlDbType.Xml, w.ToString().Replace("DocumentElement", "root"));
+                    }
+                    cmd.AddParameter("@JamAwal", SqlDbType.Time, Convert.ToDateTime(txtJamDari.Text).ToString("HH:mm"));
+                    cmd.AddParameter("@JamAkhir", SqlDbType.Time, Convert.ToDateTime(txtJamKe.Text).ToString("HH:mm"));
+                    cmd.ExecuteNonQuery();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                }
+        }
+
+        private void btnDelMesin_Click(object sender, EventArgs e)
+        {
+            if (dgvMesin.SelectedCells.Count > 0)
+                try
+                {
+                    if (MessageBox.Show("Yakin akan dihapus?", "Konfirmasi", MessageBoxButtons.YesNo,
+                                        MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) == DialogResult.Yes)
+                    {
+                        using (Database db = new Database())
+                            try
+                            {
+                                Guid _rowID = (Guid)dgvMesin.SelectedCells[0].OwningRow.Cells["RowIDM"].Value;
+                                Command cmd = db.CreateCommand("[psp_Alu_deleteMesin]");
+                                cmd.AddParameter("@rowid", SqlDbType.UniqueIdentifier, _rowID);
+                                cmd.ExecuteNonQuery();
+
+                                refreshMesin();
+                                RefreshManPower();
+                                while (dgvWaktu.Rows.Count != 0)
+                                {
+                                    dgvWaktu.Rows.RemoveAt(0);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                throw ex;
+                            }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Error.LogError(ex);
+                }
+        }
+
+        private void btnDelMould_Click(object sender, EventArgs e)
+        {
+            if (dgvMould.SelectedCells.Count > 0)
+                try
+                {
+                    if (MessageBox.Show("Yakin akan dihapus?", "Konfirmasi", MessageBoxButtons.YesNo,
+                                        MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) == DialogResult.Yes)
+                    {
+                        using (Database db = new Database())
+                            try
+                            {
+                                Guid _rowID = (Guid)dgvMould.SelectedCells[0].OwningRow.Cells["RowIDMo"].Value;
+                                Command cmd = db.CreateCommand("[psp_Alu_deleteMould]");
+                                cmd.AddParameter("@rowid", SqlDbType.UniqueIdentifier, _rowID);
+                                cmd.ExecuteNonQuery();
+
+                                RefreshMould();
+                            }
+                            catch (Exception ex)
+                            {
+                                throw ex;
+                            }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Error.LogError(ex);
+                }
+        }
+
+        private void txtTglProses_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                cboLini2.Focus();
+            }
+        }
+
+        private void cboLini2_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                cboProses.Focus();
+            }
+        }
+
+        private void cboProses_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                lookUpMesin1.Focus();
+            }
+        }
+
+        private void lookUpMesin1_SelectData(object sender, EventArgs e)
+        {
+            txtProsesKe.Focus();
+        }
+
+        private void txtProsesKe_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                txtShift.Focus();
+            }
+        }
+
+        private void txtShift_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                txtKeterangan.Focus();
+            }
+        }
+
+        private void txtKeterangan_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                txtTotalShoot.Focus();
+            }
+        }
+
+        private void txtTotalShoot_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                dgvMesin.Focus();
+            }
+        }
+
+        private void dgvMesin_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                lookUpMouldProducts1.Focus();
+            }
+            if (e.KeyCode == Keys.A && Control.ModifierKeys == Keys.Control)
+            {
+                btnAddMesin.PerformClick();
+            }
+            if (e.KeyCode == Keys.X && Control.ModifierKeys == Keys.Control)
+            {
+                btnDelMesin.PerformClick();
+            }
+        }
+
+        private void txtTotalCavity_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                txtCatatan.Focus();
+            }
+        }
+
+        private void txtCatatan_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                dgvMould.Focus();
+            }
+        }
+
+        private void dgvMould_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                lookupKaryawan1.Focus();
+            }
+            if (e.KeyCode == Keys.A && Control.ModifierKeys == Keys.Control)
+            {
+                btnAddMould.PerformClick();
+            }
+            if (e.KeyCode == Keys.X && Control.ModifierKeys == Keys.Control)
+            {
+                btnDelMould.PerformClick();
+            }
+        }
+
+        private void txtKetOP_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                dgvOperator.Focus();
+            }
+        }
+
+        private void dgvOperator_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                cmdSaveH.Focus();
+            }
+            if (e.KeyCode == Keys.A && Control.ModifierKeys == Keys.Control)
+            {
+                btnAddOpr.PerformClick();
+            }
+            if (e.KeyCode == Keys.X && Control.ModifierKeys == Keys.Control)
+            {
+                btnDelOpr.PerformClick();
+            }
+        }
+
+        private void frmWOAluProses_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.S && Control.ModifierKeys == Keys.Control)
+            {
+                cmdSaveH.PerformClick();
+            }
+            if (e.KeyCode == Keys.C && Control.ModifierKeys == Keys.Control)
+            {
+                cmdCancelH.PerformClick();
+            }
+        }
+
+        private void dgvMesin_SelectionRowChanged(object sender, EventArgs e)
+        {
+            DataTable dt = null;
+            using (Database db = new Database())
+            {
+                Command cmd = db.CreateCommand("psp_ProsesMesin_LIST_DetailWaktu");
+                cmd.AddParameter("@RowID", SqlDbType.UniqueIdentifier, dgvMesin.SelectedCells[0].OwningRow.Cells["RowIDM"].Value);
+                dt = cmd.ExecuteDataTable();
+                if (dt.Rows[0]["DetailWaktu"].ToString() != "" || dt.Rows[0]["DetailWaktu"].ToString() != null)
+                {
+                    createTabelWaktu();
+                    _detailWaktu.ReadXml(new StringReader(dt.Rows[0]["DetailWaktu"].ToString()));
+                    dgvWaktu.DataSource = _detailWaktu;
+                }
+            }
+            RefreshMould();
+            RefreshOperator();
+        }
+
+        private void btnAddJam_Click(object sender, EventArgs e)
+        {
+            InputWaktu(Class.enumClsState.New);
+        }
+
+        private void btnEditJam_Click(object sender, EventArgs e)
+        {
+            if (dgvWaktu.SelectedCells.Count > 0) InputWaktu(Class.enumClsState.Update);
+        }
+
+        void DeleteWaktu()
+        {
+            if (dgvWaktu.SelectedCells.Count > 0)
+                try
+                {
+                    if (MessageBox.Show("Yakin akan dihapus?", "Konfirmasi", MessageBoxButtons.YesNo,
+                                        MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) == DialogResult.Yes)
+                    {
+                        DataRow dr = (DataRow)(dgvWaktu.SelectedCells[0].OwningRow.DataBoundItem as DataRowView).Row;
+                        dr.Delete();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Error.LogError(ex);
+                }
+
+        }
+
+        private void btnDelJam_Click(object sender, EventArgs e)
+        {
+            DeleteWaktu();
+        }
+
+        private void btnCLoseJam_Click(object sender, EventArgs e)
+        {
+            ShowPanel(enSelectedPanel.Proses);
+            dgvWaktu.Focus();
+        }
+
+        public override bool ValidateChildren()
+        {
+            bool result = true;
+            if (string.IsNullOrEmpty(txtJamAwal.Text)) 
+                // || txtJamAwal.Text.Substring(0, 5) == "00:00")
+            {
+                err.SetError(txtJamAwal, "Waktu belum diisi");
+                result = false;
+            }
+            if (string.IsNullOrEmpty(txtJamAkhir.Text))
+            //|| txtJamAkhir.Text.Substring(0, 5) == "00:00")
+            {
+                err.SetError(txtJamAkhir, "Waktu belum diisi");
+                result = false;
+            }
+            if ((rdoOff.Checked) && (int.Parse(cboJenis.SelectedValue.ToString()) == 0))
+            {
+                err.SetError(rdoOff, "Mesin tidak bisa off ketika Produksi");
+                err.SetError(cboJenis, "Tidak bisa Produksi ketika mesin dalam kondisi off");
+                result = false;
+            }
+
+            return result;
+        }
+
+        private void btnSaveJam_Click(object sender, EventArgs e)
+        {
+            String _JamAwal = txtJamAwal.Text;
+            String _JamAkhir = txtJamAkhir.Text;
+            DataRowView dv = (DataRowView)cboJenis.SelectedItem;
+            int _Kode = int.Parse(dv["ID"].ToString());
+            String _Catatan = dv["Keterangan"].ToString();
+            String _Kondisi = (rdoOff.Checked) ? "Off" : "On";
+            String _Ket = commonTextBox1.Text;
+            SimpanWaktu(_JamAwal, _JamAkhir, _Kode, _Catatan, _Kondisi, _Ket);
+        }
+
+        void SimpanWaktu(String JamAwal, String JamAkhir, int Kode, String Catatan, String Kondisi, String Ket)
+        {
+            try
+            {
+                //bool _ok = true;
+                if (ValidateChildren() == true)
+                {
+                    DataTable dt = (DataTable)dgvWaktu.DataSource;
+                    dr["JamAwal"] = JamAwal;
+                    dr["JamAkhir"] = JamAkhir;
+                    dr["Kondisi"] = Kondisi;
+                    dr["Kode"] = Kode;//cboJenis.SelectedIndex;
+                    dr["Catatan"] = Catatan;//cboJenis.Items[cboJenis.SelectedIndex].ToString();
+                    dr["Keterangan"] = Ket;
+
+                    //DataRow _r = null;
+                    if (JamAwal == JamAkhir) dr.Delete();
+                    else
+                        foreach (DataRow r in dt.Rows)
+                        {
+                            if (DateTime.Parse(r["JamAwal"].ToString()) > DateTime.Parse(dr["JamAwal"].ToString())
+                                && DateTime.Parse(r["JamAwal"].ToString()) < DateTime.Parse(dr["JamAkhir"].ToString()))
+                            {
+                                if (DateTime.Parse(r["JamAkhir"].ToString()) <= DateTime.Parse(dr["JamAkhir"].ToString()))
+                                {
+                                    r.Delete();
+                                    break;
+                                }
+                                else r["JamAwal"] = dr["JamAkhir"];
+                            }
+                        }
+                    dgvWaktu.DataSource = dt;
+                    HitungDetailWaktu();
+                    ShowPanel(enSelectedPanel.Proses);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
+
+        void SimpanWaktuShift(String JamAwal, String JamAkhir, int Kode, String Catatan, String Kondisi, String Ket)
+        {
+            try
+            {
+                dr = null;
+                DataTable dt = (DataTable)dgvWaktu.DataSource;
+                dr = dt.Rows.Add();
+                dr["JamAwal"] = JamAwal;
+                dr["JamAkhir"] = JamAkhir;
+                dr["Kondisi"] = Kondisi;
+                dr["Kode"] = Kode;//cboJenis.SelectedIndex;
+                dr["Catatan"] = Catatan;//cboJenis.Items[cboJenis.SelectedIndex].ToString();
+                dr["Keterangan"] = Ket;
+
+                //DataRow _r = null;
+                if (JamAwal == JamAkhir) dr.Delete();
+                else
+                    foreach (DataRow r in dt.Rows)
+                    {
+                        if (DateTime.Parse(r["JamAwal"].ToString()) > DateTime.Parse(dr["JamAwal"].ToString())
+                            && DateTime.Parse(r["JamAwal"].ToString()) < DateTime.Parse(dr["JamAkhir"].ToString()))
+                        {
+                            if (DateTime.Parse(r["JamAkhir"].ToString()) <= DateTime.Parse(dr["JamAkhir"].ToString()))
+                            {
+                                r.Delete();
+                                break;
+                            }
+                            else r["JamAwal"] = dr["JamAkhir"];
+                        }
+                    }
+                dgvWaktu.DataSource = dt;
+                HitungDetailWaktu();
+                ShowPanel(enSelectedPanel.Proses);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
+
+        public void SetMenu(bool a)
+        {
+            pnlMesin.Enabled = a;
+            pnlJamMesin.Enabled = a;
+            pnlMould.Enabled = a;
+            lookUpMesin1.Enabled = a;
+            txtTotalShoot.Enabled = a;
+            cbapproved.Enabled = a;
+        }
+
+        private void txtTglProses_Leave(object sender, EventArgs e)
+        {
+            if (!Class.Tools.IsExpiredLevel8("PRODUKSI", txtTglProses.DateValue.Value, "DD"))
+            {
+                MessageBox.Show("Tanggal Proses sudah melebihi batas toleransi Inputan, Silahkan menghubungi Kepala Bagian.");
+                txtTglProses.Focus();
+                return;
+            }
+
+            if (txtTglProses.DateValue.Value.Date > Class.GlobalVar.GetServerDate)
+            {
+                MessageBox.Show("Tanggal Proses tidak boleh lebih dari hari ini.");
+                txtTglProses.Focus();
+                return;
+            }
+        }
+
+        private void pnlProses_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+
+        private void cbapproved_CheckedChanged(object sender, EventArgs e)
+        {
+            //edit SA
+            if (cbapproved.Checked == true)
+            {
+                txtapprove.Text = "1";
+                txtapby.Text = SecurityManager.UserInitial.ToString();
+                txtapdate.Text = Convert.ToDateTime(Class.GlobalVar.DateTrx).ToString("dd/MM/yyyy"); 
+            }
+            if (cbapproved.Checked == false)
+            {
+                txtapprove.Text = "0";
+                txtapby.Text = " ";
+                txtapdate.Text = " "; 
+            }
+        }
+
+        private void txtapdate_MaskInputRejected(object sender, MaskInputRejectedEventArgs e)
+        {
+
+        }
+
+    }
+}

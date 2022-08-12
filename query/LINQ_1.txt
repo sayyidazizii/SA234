@@ -1,0 +1,22 @@
+var ttUD05Recs = (from ttUD05Row in ttUD05
+where ttUD05Row.Company == Session.CompanyID
+&& (ttUD05Row.RowMod == "A")select ttUD05Row).FirstOrDefault();//A, U, D
+{
+  if(ttUD05Recs != null)
+  {
+      var ttUD05Recs2 = (from ttUD05Row in Db.UD05
+      where ttUD05Row.Company == Session.CompanyID 
+      orderby ttUD05Row.Key1 descending
+      select ttUD05Row).FirstOrDefault();
+      {
+        
+        if(ttUD05Recs2 != null)
+        {
+        ttUD05Recs.Key1 = (Convert.ToInt32(ttUD05Recs2.Key1)+1).ToString();
+        //ttOrderHedRecs.PONum = ttCustomerRecs.Name;  
+        }else{
+          ttUD05Recs.Key1 = "1";
+        }
+      }
+  }
+}
