@@ -1,0 +1,312 @@
+USE [ISAPabrikProduksi]
+GO
+/****** Object:  StoredProcedure [dbo].[rsp_PemakaianBahanBakuDanOutputNakayama]    Script Date: 08/25/2022 11:47:57 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+            
+-- =============================================              
+-- Author  : Akbar               
+-- Create date : 28 Maret 2015              
+-- Description : Laporan perbandingan bahan baku dan hasil casting               
+-- Sementara input dan output workcenternya masih di hardcode, namun perlu dibuat table settingan utk kedepannya             
+-- EXEC [dbo].[rsp_PemakianBahanBakuDanOutput]              
+-- =============================================              
+ALTER PROCEDURE [dbo].[rsp_PemakaianBahanBakuDanOutputNakayama]              
+  @plantrowid uniqueidentifier ,             
+ @startdte date,             
+ @enddate date              
+AS              
+BEGIN              
+ SET NOCOUNT ON;              
+            
+--declare @plantrowid uniqueidentifier = '41E55EEB-AEAF-4FCE-90A0-F31272E30536'             
+--declare @startdte date = '2014-10-01'             
+--declare @enddate date  = '2014-10-15'             
+--Melting alumunium             
+declare @inputworkcenter0 uniqueidentifier = 'B2343017-7687-4E30-8823-1C3EE7677C75'           
+declare @inputworkcenter1 uniqueidentifier = '7D79529F-19C5-4F40-81A6-69521EE30363'           
+declare @inputworkcenter2 uniqueidentifier = '37B0692F-99A7-47C4-9C21-95C9B2A7A9C8'           
+declare @inputworkcenter3 uniqueidentifier = '39B6FD9E-BF9A-4CCC-AB77-E4CA5F2162EC'           
+declare @inputworkcenter4 uniqueidentifier = null           
+          
+declare @outputworkcenter0 uniqueidentifier ='7D79529F-19C5-4F40-81A6-69521EE30363'            
+declare @outputworkcenter1 uniqueidentifier = '37B0692F-99A7-47C4-9C21-95C9B2A7A9C8'           
+declare @outputworkcenter2 uniqueidentifier = '39B6FD9E-BF9A-4CCC-AB77-E4CA5F2162EC'         
+          
+declare @bahanbakurowidpengaruhtonnase uniqueidentifier = 'D07690EE-1333-4AF6-97EB-8E0EE67165CA'
+declare @bahanbakuRowIDResin uniqueidentifier = 'F029DA90-C9C0-4F37-8FD4-F0A3606195A5'  -- meterial Resin untuk Proses Produksi Casting sand core      
+declare @prosesrowidpengaruhtonnase1 uniqueidentifier = '37B0692F-99A7-47C4-9C21-95C9B2A7A9C8'    -- Proses Produksi DieCasting       
+declare @prosesrowidpengaruhtonnase2 uniqueidentifier = '7D79529F-19C5-4F40-81A6-69521EE30363'     -- Proses Produksi GRAVITY CASTING NAKAYAMA        
+declare @prosesrowidpengaruhtonnase3 uniqueidentifier = '39B6FD9E-BF9A-4CCC-AB77-E4CA5F2162EC'   -- Proses Produksi Casting sand core      
+   
+ declare @LineProduksiCastingSandCore uniqueidentifier = '6C731B96-86B5-4F45-8CFC-FB0637CE9A46'     
+           
+--Pemakaian Bahan Baku           dan hitung pemakaian barang jika itu Cleanning dan sand COre  
+if  exists
+(
+	select hpwokd.IDMaterial , m.KdMaterial , m.NmMaterial , sum(hpwokd.Qty) sumQty , m.Satuan             
+	from HasilProsesWO hpwo inner join HasilProsesWODetail hpwod on hpwo.RowID = hpwod.IDHPWO             
+	left join HasilProsesWOKDetail hpwokd on hpwokd.IDHPWOD = hpwod.RowID             
+	left join isapabrik.dbo.material m on m.RowID = hpwokd.IDMaterial             
+	where hpwo.ProsesID = @inputworkcenter0               
+	and hpwo.TglProses between @startdte and @enddate             
+	group by hpwokd.IDMaterial , m.KdMaterial , m.NmMaterial  , m.Satuan             
+	union all             
+	select   
+	hpwokd.IDMaterial,   
+	m.KdMaterial ,   
+	m.NmMaterial ,   
+	sum(hpwokd.Qty) sumQty ,   
+	m.Satuan             
+	from HasilProsesWO hpwo inner join HasilProsesWODetail hpwod on hpwo.RowID = hpwod.IDHPWO             
+	left join HasilProsesWOKDetail hpwokd on hpwokd.IDHPWOD = hpwod.RowID             
+	left join isapabrik.dbo.material m on m.RowID = hpwokd.IDMaterial             
+	where hpwo.ProsesID <> @inputworkcenter0               
+	and hpwo.TglProses between @startdte and @enddate             
+	and hpwod.IDMaterial <> hpwokd.IDMaterial             
+	and hpwokd.TipeItem = 1        
+	and hpwo.IDLiniProduksi in ( select RowID from isapabrik.dbo.LineProduksi where RowIDPlant = @plantrowid )             
+	and             
+	(             
+	 hpwo.ProsesID = @inputworkcenter1 or hpwo.ProsesID = @inputworkcenter2          
+	)             
+	group by hpwokd.IDMaterial , m.KdMaterial , m.NmMaterial , m.Satuan        
+
+)
+--edit SA
+begin
+	select hpwokd.IDMaterial , m.KdMaterial ,hpwo.Approved,hpwo.Approvedby,hpwo.ApprovedDate, m.NmMaterial , sum(hpwokd.Qty) sumQty , m.Satuan             
+	from HasilProsesWO hpwo inner join HasilProsesWODetail hpwod on hpwo.RowID = hpwod.IDHPWO             
+	left join HasilProsesWOKDetail hpwokd on hpwokd.IDHPWOD = hpwod.RowID             
+	left join isapabrik.dbo.material m on m.RowID = hpwokd.IDMaterial             
+	where hpwo.ProsesID = @inputworkcenter0               
+	and hpwo.TglProses between @startdte and @enddate             
+	group by hpwokd.IDMaterial , m.KdMaterial ,hpwo.Approved,hpwo.Approvedby,hpwo.ApprovedDate, m.NmMaterial  , m.Satuan             
+	union all             
+	select   
+	hpwokd.IDMaterial,   
+	m.KdMaterial ,
+	--edit SA
+	hpwo.Approved,
+	hpwo.Approvedby,
+	hpwo.ApprovedDate,   
+	m.NmMaterial ,   
+	sum(hpwokd.Qty) sumQty ,   
+	m.Satuan             
+	from HasilProsesWO hpwo inner join HasilProsesWODetail hpwod on hpwo.RowID = hpwod.IDHPWO             
+	left join HasilProsesWOKDetail hpwokd on hpwokd.IDHPWOD = hpwod.RowID             
+	left join isapabrik.dbo.material m on m.RowID = hpwokd.IDMaterial             
+	where hpwo.ProsesID <> @inputworkcenter0               
+	and hpwo.TglProses between @startdte and @enddate             
+	and hpwod.IDMaterial <> hpwokd.IDMaterial             
+	and hpwokd.TipeItem = 1        
+	and hpwo.IDLiniProduksi in ( select RowID from isapabrik.dbo.LineProduksi where RowIDPlant = @plantrowid )             
+	and             
+	(             
+	 hpwo.ProsesID = @inputworkcenter1 or hpwo.ProsesID = @inputworkcenter2          
+	)             
+	group by hpwokd.IDMaterial , m.KdMaterial ,hpwo.Approved,hpwo.Approvedby,hpwo.ApprovedDate, m.NmMaterial , m.Satuan       
+end
+else
+begin
+	select '' IDMaterial, '' KdMaterial, '' NmMaterial, null sumQty, '' Satuan
+end
+   
+   
+--Output dari hasil Casting    
+if exists 
+(         
+select t.* ,             
+ t.sumQty * resepkgpcs.kgpcs sumQtyKgPcs , t.sumSp * resepkgpcs.kgpcs sumSPKgPcs ,   NmMesin,         
+ -- case when t.NmMaterial  like '%WHEEL CYLINDER%' then (isnull(t.sumQty,0) + isnull(t.sumSp,0)) * resepkgpcs.qtykucu           
+ (isnull(t.sumQty,0) + isnull(t.sumSp,0)) * resepkgpcs.qtykucu  sumKucuKgPcs 
+ 
+ --edit SA      
+from             
+(select hpwod.IDMaterial  , m.KdMaterial ,hpwo.Approved,hpwo.Approvedby,hpwo.ApprovedDate, m.NmMaterial , sum(hpwod.Qty) sumQty , sum(hpwod.SPOk) sumSP  , m.Satuan , hpwo.IDMesin            
+ from HasilProsesWO hpwo inner join HasilProsesWODetail hpwod on hpwo.RowID = hpwod.IDHPWO             
+ left join isapabrik.dbo.material m on m.RowID = hpwod.IDMaterial             
+ where (   
+ hpwo.ProsesID = @outputworkcenter0 or hpwo.ProsesID = @outputworkcenter1  
+ )             
+ and hpwo.TglProses between @startdte and @enddate             
+ group by hpwod.IDMaterial  , m.KdMaterial ,hpwo.Approved,hpwo.Approvedby,hpwo.ApprovedDate, m.NmMaterial  , m.Satuan , hpwo.IDMesin          
+) t             
+outer apply             
+(            
+   select top 1 isnull(subw.Qty,0) kgpcs , ISNULL(subw.QtyKucu,0) qtykucu              
+   from ISAPabrik.dbo.WIP subw                
+   where (subw.IDMatBKU in ('D07690EE-1333-4AF6-97EB-8E0EE67165CA','86135793-A89F-4558-AA3F-1302EA312451'
+   ,'A7AEE1D9-EDFC-463D-82B4-64E78AF5F7ED','B3A57893-2A45-49C6-8B28-C1CC6DE3A7E4','ACCBFA7F-61BD-4964-AD9D-C4D1AE956379') or subw.IDMatBKU  = @bahanbakuRowIDResin)
+   and subw.IDMatWIP = t.IDMaterial and             
+   ( subw.IDProses = @prosesrowidpengaruhtonnase1 or subw.idproses=@prosesrowidpengaruhtonnase2 or subw.idproses=@prosesrowidpengaruhtonnase3 )             
+) resepkgpcs          
+outer apply         
+(        
+ select NmMesin from ISAPabrik.dbo.Mesin msn where msn.RowID = t.IDMesin        
+) m     
+ )
+ begin
+ select t.* ,             
+ t.sumQty * resepkgpcs.kgpcs sumQtyKgPcs , t.sumSp * resepkgpcs.kgpcs sumSPKgPcs ,   NmMesin,Approved,Approvedby,ApprovedDate,         
+ -- case when t.NmMaterial  like '%WHEEL CYLINDER%' then (isnull(t.sumQty,0) + isnull(t.sumSp,0)) * resepkgpcs.qtykucu           
+ (isnull(t.sumQty,0) + isnull(t.sumSp,0)) * resepkgpcs.qtykucu  sumKucuKgPcs   
+ 
+ --edit SA    
+from             
+(select hpwod.IDMaterial  , m.KdMaterial ,hpwo.Approved,hpwo.Approvedby,hpwo.ApprovedDate, m.NmMaterial , sum(hpwod.Qty) sumQty , sum(hpwod.SPOk) sumSP  , m.Satuan , hpwo.IDMesin            
+ from HasilProsesWO hpwo inner join HasilProsesWODetail hpwod on hpwo.RowID = hpwod.IDHPWO             
+ left join isapabrik.dbo.material m on m.RowID = hpwod.IDMaterial             
+ where (   
+ hpwo.ProsesID = @outputworkcenter0 or hpwo.ProsesID = @outputworkcenter1  
+ )             
+ and hpwo.TglProses between @startdte and @enddate             
+ group by hpwod.IDMaterial  , m.KdMaterial ,hpwo.Approved,hpwo.Approvedby,hpwo.ApprovedDate, m.NmMaterial  , m.Satuan , hpwo.IDMesin          
+) t             
+outer apply             
+(            
+   select top 1 isnull(subw.Qty,0) kgpcs , ISNULL(subw.QtyKucu,0) qtykucu              
+   from ISAPabrik.dbo.WIP subw                
+   where (subw.IDMatBKU in ('D07690EE-1333-4AF6-97EB-8E0EE67165CA','86135793-A89F-4558-AA3F-1302EA312451'
+   ,'A7AEE1D9-EDFC-463D-82B4-64E78AF5F7ED','B3A57893-2A45-49C6-8B28-C1CC6DE3A7E4','ACCBFA7F-61BD-4964-AD9D-C4D1AE956379') or subw.IDMatBKU  = @bahanbakuRowIDResin)
+   and subw.IDMatWIP = t.IDMaterial and             
+   ( subw.IDProses = @prosesrowidpengaruhtonnase1 or subw.idproses=@prosesrowidpengaruhtonnase2 or subw.idproses=@prosesrowidpengaruhtonnase3 )             
+) resepkgpcs          
+outer apply         
+(        
+ select NmMesin from ISAPabrik.dbo.Mesin msn where msn.RowID = t.IDMesin        
+) m     
+end
+else
+begin
+	select null IDMaterial  , '' KdMaterial , '' NmMaterial ,''Approved,''Approvedby,''ApprovedDate,  null sumQty , null sumSP  , null Satuan , null IDMesin, null sumQtyKgPcs , null sumSPKgPcs , null  NmMesin, null  sumKucuKgPcs
+end
+  
+  
+  
+--hitung kotoran dari alumuniumcairnya 
+select SUM(hpwod.SPOK) KotoranAlumuniumCair          
+from HasilProsesWO hpwo inner join HasilProsesWODetail hpwod on hpwo.RowID = hpwod.IDHPWO            
+where hpwo.TglProses between @startdte and @enddate             
+and 
+( hpwo.ProsesID = @outputworkcenter0 or hpwo.ProsesID = @outputworkcenter1 or hpwo.ProsesID = @outputworkcenter2 OR hpwo.ProsesID = @inputworkcenter0 )
+--and (hpwod.IDMaterial = @bahanbakurowidpengaruhtonnase or  hpwod.IDMaterial =  @bahanbakuRowIDResin)
+and (hpwod.IDMaterial IN  (SELECT RowID FROM ISAPabrik..Material WHERE NmMaterial LIKE '%ALUMUNIUM CAIR%' OR RowID IN (@bahanbakurowidpengaruhtonnase, @bahanbakuRowIDResin)))
+
+
+
+
+ -- Pemakaian Bahan Baku  Penambahan dari pemakaian barang  
+ if exists 
+ (
+ select pbd.MaterialRowID IDMaterial,   
+m.KdMaterial ,   
+m.NmMaterial ,   
+sum(pbd.Qty) sumQty ,   
+m.Satuan    
+from ISAPabrik.dbo.PemakaianBarang pb   
+ inner Join ISAPabrik.dbo.PemakaianBarangDetail pbd on pb.RowID = pbd.HeaderRowID  
+ Left Join  isapabrik.dbo.material m on m.RowID = pbd.MaterialRowID  
+ where LineProduksiRowID = @LineProduksiCastingSandCore  
+ and pb.Tanggal between @startdte and @enddate      
+ group by pbd.MaterialRowID , m.KdMaterial , m.NmMaterial , m.Satuan   
+)
+begin
+	select pbd.MaterialRowID IDMaterial,   
+	m.KdMaterial ,   
+	m.NmMaterial ,   
+	sum(pbd.Qty) sumQty ,   
+	m.Satuan    
+	from ISAPabrik.dbo.PemakaianBarang pb   
+	 inner Join ISAPabrik.dbo.PemakaianBarangDetail pbd on pb.RowID = pbd.HeaderRowID  
+	 Left Join  isapabrik.dbo.material m on m.RowID = pbd.MaterialRowID  
+	 where LineProduksiRowID = @LineProduksiCastingSandCore  
+	 and pb.Tanggal between @startdte and @enddate      
+	 group by pbd.MaterialRowID , m.KdMaterial , m.NmMaterial , m.Satuan   
+end
+else
+begin
+	select
+	null IDMaterial,   
+	'' KdMaterial ,   
+	'' NmMaterial ,   
+	null sumQty ,   
+	'' Satuan    
+end
+
+
+--Output dari hasil Casting  
+if exists
+(           
+select t.* ,             
+ t.sumQty * resepkgpcs.kgpcs sumQtyKgPcs , t.sumSp * resepkgpcs.kgpcs sumSPKgPcs ,   NmMesin,         
+ -- case when t.NmMaterial  like '%WHEEL CYLINDER%' then (isnull(t.sumQty,0) + isnull(t.sumSp,0)) * resepkgpcs.qtykucu           
+ (isnull(t.sumQty,0) + isnull(t.sumSp,0)) * resepkgpcs.qtykucu  sumKucuKgPcs
+  
+ --edit SA      
+from             
+(select hpwod.IDMaterial  , m.KdMaterial ,hpwo.Approved,hpwo.Approvedby,hpwo.ApprovedDate, m.NmMaterial , sum(hpwod.Qty) sumQty , sum(hpwod.SPOk) sumSP  , m.Satuan , hpwo.IDMesin            
+ from HasilProsesWO hpwo inner join HasilProsesWODetail hpwod on hpwo.RowID = hpwod.IDHPWO             
+ left join isapabrik.dbo.material m on m.RowID = hpwod.IDMaterial             
+ where (   
+  hpwo.ProsesID = @outputworkcenter2   
+ --or hpwo.IDLiniProduksi = @LineProduksiCastingSandCore  
+ )             
+ and hpwo.TglProses between @startdte and @enddate             
+ group by hpwod.IDMaterial  , m.KdMaterial ,hpwo.Approved,hpwo.Approvedby,hpwo.ApprovedDate, m.NmMaterial  , m.Satuan , hpwo.IDMesin          
+) t             
+outer apply             
+(            
+   select top 1 isnull(subw.Qty,0) kgpcs , ISNULL(subw.QtyKucu,0) qtykucu              
+   from ISAPabrik.dbo.WIP subw                
+   where (subw.IDMatBKU  = @bahanbakuRowIDResin)
+   and subw.IDMatWIP = t.IDMaterial and             
+   (subw.idproses=@prosesrowidpengaruhtonnase3 )             
+) resepkgpcs          
+outer apply         
+(        
+ select NmMesin from ISAPabrik.dbo.Mesin msn where msn.RowID = t.IDMesin        
+) m     
+ )
+ begin
+ select t.* ,             
+ t.sumQty * resepkgpcs.kgpcs sumQtyKgPcs , t.sumSp * resepkgpcs.kgpcs sumSPKgPcs ,   NmMesin,Approved,Approvedby,ApprovedDate,          
+ -- case when t.NmMaterial  like '%WHEEL CYLINDER%' then (isnull(t.sumQty,0) + isnull(t.sumSp,0)) * resepkgpcs.qtykucu           
+ (isnull(t.sumQty,0) + isnull(t.sumSp,0)) * resepkgpcs.qtykucu  sumKucuKgPcs       
+from             
+(     
+--edit SA       
+ select hpwod.IDMaterial  , m.KdMaterial ,hpwo.Approved,hpwo.Approvedby,hpwo.ApprovedDate, m.NmMaterial , sum(hpwod.Qty) sumQty , sum(hpwod.SPOk) sumSP  , m.Satuan , hpwo.IDMesin            
+ from HasilProsesWO hpwo inner join HasilProsesWODetail hpwod on hpwo.RowID = hpwod.IDHPWO             
+ left join isapabrik.dbo.material m on m.RowID = hpwod.IDMaterial             
+ where (   
+  hpwo.ProsesID = @outputworkcenter2   
+ --or hpwo.IDLiniProduksi = @LineProduksiCastingSandCore  
+ )             
+ and hpwo.TglProses between @startdte and @enddate             
+ group by hpwod.IDMaterial  , m.KdMaterial ,hpwo.Approved,hpwo.Approvedby,hpwo.ApprovedDate, m.NmMaterial  , m.Satuan , hpwo.IDMesin          
+) t             
+outer apply             
+(            
+   select top 1 isnull(subw.Qty,0) kgpcs , ISNULL(subw.QtyKucu,0) qtykucu              
+   from ISAPabrik.dbo.WIP subw                
+   where (subw.IDMatBKU  = @bahanbakuRowIDResin)
+   and subw.IDMatWIP = t.IDMaterial and             
+   (subw.idproses=@prosesrowidpengaruhtonnase3 )             
+) resepkgpcs          
+outer apply         
+(        
+ select NmMesin from ISAPabrik.dbo.Mesin msn where msn.RowID = t.IDMesin        
+) m 
+ end
+ else
+begin
+	select null IDMaterial  , '' KdMaterial ,''Approved,''Approvedby,''ApprovedDate, '' NmMaterial , null sumQty , null sumSP  , null Satuan , null IDMesin, null sumQtyKgPcs , null sumSPKgPcs , null  NmMesin, null  sumKucuKgPcs
+end
+   
+end 
+

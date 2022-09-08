@@ -1,0 +1,1823 @@
+USE [ISAPabrikProduksi]
+GO
+/****** Object:  UserDefinedFunction [dbo].[fn_StockWorkcenter_Nakayama]    Script Date: 08/25/2022 11:29:13 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+
+
+
+-- =============================================    
+-- Author		: Andreas   
+-- Create date	: 30 Maret 2016    
+-- Description	: function StockWork Center 
+-- Rev			: By Agus 2017   
+-- =============================================    
+ALTER FUNCTION [dbo].[fn_StockWorkcenter_Nakayama]    
+(     
+ -- Add the parameters for the function here    
+@fromdate date,-- = '2015-11-01',     
+@todate date,-- = '2015-11-30',    
+@ProsesProduksiRowID Uniqueidentifier = null, 
+@LiniProduksiRowID Uniqueidentifier = null,
+@lastPrevMount Date
+)    
+RETURNS TABLE     
+AS    
+RETURN     
+(
+
+--declare @LiniProduksiRowID uniqueidentifier='7D79529F-19C5-4F40-81A6-69521EE30363'
+--declare @lastPrevMount datetime ='2016-02-29'
+
+--declare  @fromdate date='2016-03-01',               
+-- @todate date='2016-03-31'   
+--edit SA
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, cswc.Nama as ProsesName    
+, cswc.Tanggal    
+, 'Saldo Awal' Uraian    
+, cswc.QtyAkhir SaldoAwal
+, null Approved    
+, null Approvedby    
+, null ApprovedDate    
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain    
+, NULL QtyKeluar    
+, NULL QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, cswc.QtyAkhir    
+from ISAPabrik.dbo.Material tm     
+Cross APPLY     
+(     
+ select top 1 x.Tanggal,'' Approved,'' Approvedby, ''ApprovedDate    
+ , x.QtyAkhir ,pp.Nama    
+ from ClosingStockWorkCenter x     
+ join dbo.ProsesProduksi pp on pp.RowID = x.ProsesProduksiRowID    
+ where tm.RowID = x.MaterialRowID      
+ and (x.ProsesProduksiRowID = @ProsesProduksiRowID or @ProsesProduksiRowID is null)    
+ and x.Tanggal = @lastPrevMount    
+ Order by x.Tanggal desc    
+) cswc    
+where tm.Status>0 and @LiniProduksiRowID != '6F1E2F61-611E-40C3-8F00-CD8D6A1114AB' --Lini Machining Nakayama 
+and @ProsesProduksiRowID != 'B2343017-7687-4E30-8823-1C3EE7677C75' --MELTING NAKAYAMA
+
+union all
+
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, cswc.Nama as ProsesName    
+, cswc.Tanggal    
+, 'Saldo Awal' Uraian    
+, cswc.QtyAkhir SaldoAwal
+, null Approved    
+, null Approvedby    
+, null ApprovedDate    
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain    
+, NULL QtyKeluar    
+, NULL QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, cswc.QtyAkhir    
+from ISAPabrik.dbo.Material tm     
+Cross APPLY     
+(     
+ select top 1 x.Tanggal,'' Approved,'' Approvedby, ''ApprovedDate    
+ , x.QtyAkhir ,pp.Nama    
+ from ClosingStockWorkCenter x     
+ join dbo.ProsesProduksi pp on pp.RowID = @ProsesProduksiRowID    
+ where tm.RowID = x.MaterialRowID      
+ and (x.LiniProduksiRowID = @LiniProduksiRowID) 
+ and x.ProsesProduksiRowID = ISAPabrik.dbo.EmptyUID()   
+ and x.Tanggal = @lastPrevMount    
+ Order by x.Tanggal desc    
+) cswc    
+where tm.Status>0 and @LiniProduksiRowID = '6F1E2F61-611E-40C3-8F00-CD8D6A1114AB' --Lini Machining Nakayama 
+and @ProsesProduksiRowID = '2848AE06-AFBC-453D-B38C-EC80A1BD16C2' -- hanya diambil satu kali
+
+
+
+-------------
+union all
+     
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, null ProsesName    
+, x.Tanggal    
+, 'Dari GUDANG FINISED GOOD' Uraian    
+, null SaldoAwal
+, null Approved    
+, null Approvedby    
+, null ApprovedDate    
+, x.QtyTotal qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain    
+, NULL QtyKeluar    
+, NULL QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, x.QtyTotal     
+from ISAPabrik.dbo.Material tm     
+Cross APPLY     
+(     
+ select pd.Qty QtyTotal,pe.Tanggal,'' Approved,'' Approvedby, ''ApprovedDate
+ FROM ISAPabrik..PengeluaranDetail pd 
+ left join isapabrik..Pengeluaran pe on pe.RowID = pd.HeaderRowID
+ left join ISAPabrik..LineProduksi lp on  pe.LineProduksiDariRowID = lp.RowID 
+ left join ISAPabrik..LineProduksi lk on  pe.LineProduksiKeRowID = lk.RowID  
+ WHERE pe.Tanggal BETWEEN @fromdate AND @todate          
+ and tm.RowID = pd.MaterialRowID   
+ and pe.LineProduksiKeRowID = '72BF6128-9189-4FDE-AD4E-486E1CE49672'
+ and pe.LineProduksiDariRowID = '151375F4-C2D4-458C-A396-493E6DA7CD81'
+ --Group by hpwo.TglProses, HPWOD.IDMaterial,pp.Nama    
+) x    
+where x.QtyTotal > 0  and x.QtyTotal > 0 and @LiniProduksiRowID = '72BF6128-9189-4FDE-AD4E-486E1CE49672' --Lini PACKING NAKAYAMA   
+
+union all
+     
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, null ProsesName    
+, x.Tanggal    
+, 'Dari GBB' Uraian    
+, null SaldoAwal
+, null Approved    
+, null Approvedby    
+, null ApprovedDate    
+, x.QtyTotal qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain    
+, NULL QtyKeluar    
+, NULL QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, x.QtyTotal     
+from ISAPabrik.dbo.Material tm     
+Cross APPLY     
+(     
+ select Sum(pd.Qty) QtyTotal,pe.Tanggal,'' Approved,'' Approvedby, ''ApprovedDate
+ FROM ISAPabrik..PengeluaranDetail pd 
+ join isapabrik..Pengeluaran pe on pe.RowID = pd.HeaderRowID
+ --left join ISAPabrik..Material m on m.RowID = pd.MaterialRowID
+ join ISAPabrik..LineProduksi lp on  pe.LineProduksiDariRowID = lp.RowID 
+ join ISAPabrik..LineProduksi lk on  pe.LineProduksiKeRowID = lk.RowID  
+ WHERE pe.Tanggal BETWEEN @fromdate AND @todate          
+ and tm.RowID = pd.MaterialRowID   
+ and pe.LineProduksiDariRowID = '54D40E8C-2B89-4010-AF76-26A1BDA6B798'
+ and pe.LineProduksiKeRowID = '771A3CE0-D157-44B2-98BE-641F2ED4C146'
+ Group by pe.Tanggal 
+) x    
+where x.QtyTotal > 0  and x.QtyTotal > 0
+and tm.KdMaterial in ('OLKTB02M','OLKTB10M','OLHMI10M','OLHMI08M','OLKTB08M', 'OLKTB09M')
+and @LiniProduksiRowID = '6F1E2F61-611E-40C3-8F00-CD8D6A1114AB' --Lini Machining Nakayama 
+and @ProsesProduksiRowID = '2848AE06-AFBC-453D-B38C-EC80A1BD16C2' -- hanya diambil satu kali
+  
+--------------
+union all
+     
+Select
+  tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, null ProsesName    
+, x.Tanggal    
+, 'Dari GBB' Uraian    
+, null SaldoAwal
+, null Approved    
+, null Approvedby    
+, null ApprovedDate    
+, x.QtyTotal qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain    
+, NULL QtyKeluar    
+, NULL QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, x.QtyTotal     
+from ISAPabrik.dbo.Material tm     
+Cross APPLY     
+(     
+ select sum(pd.Qty) QtyTotal,pe.Tanggal,'' Approved,'' Approvedby, ''ApprovedDate
+ FROM ISAPabrik..PengeluaranDetail pd 
+ left join isapabrik..Pengeluaran pe on pe.RowID = pd.HeaderRowID
+ --left join ISAPabrik..Material m on m.RowID = pd.MaterialRowID
+ left join ISAPabrik..LineProduksi lp on  pe.LineProduksiDariRowID = lp.RowID 
+ left join ISAPabrik..LineProduksi lk on  pe.LineProduksiKeRowID = lk.RowID  
+ WHERE pe.Tanggal BETWEEN @fromdate AND @todate          
+ and tm.RowID = pd.MaterialRowID   
+ and lp.NmLine = 'MATERIAL (BAHAN BAKU)'
+ and lk.NmLine = 'NAKAYAMA'
+ and tm.KdMaterial like 'OLKTB%S'
+ Group by pe.Tanggal  
+) x    
+where x.QtyTotal > 0  and x.QtyTotal > 0 
+and @LiniProduksiRowID = '6C731B96-86B5-4F45-8CFC-FB0637CE9A46' --Lini Machining Nakayama 
+and @ProsesProduksiRowID = '2848AE06-AFBC-453D-B38C-EC80A1BD16C2' -- hanya diambil satu kali
+
+union all
+
+
+--edit SA
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, x.Nama as ProsesName    
+, x.Tanggal    
+, 'Hasil Produksi' Uraian    
+, null SaldoAwal
+, X.Approved  
+, X.Approvedby
+, X.ApprovedDate
+, null qtyMasuk    
+, x.QtyTotal qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain    
+, NULL QtyKeluar    
+, NULL QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, x.QtyTotal     
+from ISAPabrik.dbo.Material tm     
+Cross APPLY     
+(     
+ select hpwo.TglProses Tanggal,HPWO.Approved,HPWO.Approvedby,HPWO.ApprovedDate, sum(HPWOD.Qty+HPWOD.SPOk) QtyTotal, pp.Nama    
+ FROM       
+ ISAPabrikProduksi.dbo.HasilProsesWO HPWO      
+ JOIN ISAPabrikProduksi.dbo.HasilProsesWODetail HPWOD ON HPWO.RowID = HPWOD.IDHPWO      
+ join dbo.ProsesProduksi pp on pp.RowID =HPWO.ProsesID    
+ WHERE TglProses BETWEEN @fromdate AND @todate          
+ and tm.RowID = hpwod.IDMaterial    
+ and (HPWO.ProsesID = @ProsesProduksiRowID or @ProsesProduksiRowID is null) 
+ --and @ProsesProduksiRowID != 'B2343017-7687-4E30-8823-1C3EE7677C75'
+ Group by hpwo.TglProses,HPWO.Approved,HPWO.Approvedby,HPWO.ApprovedDate, HPWOD.IDMaterial,pp.Nama    
+) x    
+where x.QtyTotal > 0  and x.QtyTotal > 0 
+and @LiniProduksiRowID != '6F1E2F61-611E-40C3-8F00-CD8D6A1114AB' --Lini Machining Nakayama   
+and @ProsesProduksiRowID != 'B2343017-7687-4E30-8823-1C3EE7677C75' --MELTING NAKAYAMA
+
+/** MELTING DI SKIP
+union all
+
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, y.Nama as ProsesName    
+,  y.Tanggal    
+, 'Ke '+y.Nama  Uraian    
+, null SaldoAwal    
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain
+, NULL QtyKeluar 
+, y.QtyTotal as QtyKeLiniBerikutnya 
+, NULL QtyRevisi
+, (-1) * y.QtyTotal as QtyTotal 
+from ISAPabrik.dbo.Material tm     
+Cross APPLY     
+(     
+	select hpwod.IDMaterial
+	FROM       
+	ISAPabrikProduksi.dbo.HasilProsesWO HPWO      
+	JOIN ISAPabrikProduksi.dbo.HasilProsesWODetail HPWOD ON HPWO.RowID = HPWOD.IDHPWO      
+	join dbo.ProsesProduksi pp on pp.RowID = HPWO.ProsesID        
+	WHERE tm.RowID=HPWOD.IDMaterial
+	and hpwo.ProsesID = @ProsesProduksiRowID
+	group by hpwod.IDMaterial
+) x 
+Cross APPLY     
+(     
+	select hpwo.TglProses Tanggal, sum(HPWOKD.Qty) QtyTotal, pp.Nama , pp.RowID ProsesRowID  
+	FROM       
+	ISAPabrikProduksi.dbo.HasilProsesWO HPWO      
+	JOIN ISAPabrikProduksi.dbo.HasilProsesWOKDetail HPWOKD ON HPWO.RowID = HPWOKD.IDHPWO      
+	join dbo.ProsesProduksi pp on pp.RowID = HPWO.ProsesID        
+	WHERE TglProses BETWEEN @fromdate AND @todate  
+	AND x.IDMaterial = HPWOKD.IDMaterial
+	AND HPWOKD.TipeItem = 0
+	group by hpwo.TglProses ,pp.Nama , pp.RowID
+) y
+where y.QtyTotal > 0 and @LiniProduksiRowID != '6F1E2F61-611E-40C3-8F00-CD8D6A1114AB' -- Lini Machining Nakayama
+and @ProsesProduksiRowID in  ('B2343017-7687-4E30-8823-1C3EE7677C75') --MELTING NAKAYAMA
+
+**/
+
+union all
+
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, x.Nama as ProsesName    
+,  x.Tanggal    
+, 'Ke '+x.Nama  Uraian    
+, null SaldoAwal
+, X.Approved  
+, X.Approvedby
+, X.ApprovedDate    
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain
+, NULL QtyKeluar 
+, x.QtyTotal as QtyKeLiniBerikutnya 
+, NULL QtyRevisi
+, (-1) * x.QtyTotal as QtyTotal 
+from ISAPabrik.dbo.Material tm     
+Cross APPLY     
+(     
+ select hpwo.TglProses Tanggal,HPWO.Approved,HPWO.Approvedby,HPWO.ApprovedDate, sum(HPWOD.Qty + HPWOD.SPOk) QtyTotal, pp.Nama , pp.RowID ProsesRowID  
+ FROM       
+ ISAPabrikProduksi.dbo.HasilProsesWO HPWO      
+ JOIN ISAPabrikProduksi.dbo.HasilProsesWODetail HPWOD ON HPWO.RowID = HPWOD.IDHPWO      
+ join dbo.ProsesProduksi pp on pp.RowID = HPWO.ProsesID        
+ WHERE TglProses BETWEEN @fromdate AND @todate  
+ AND   tm.RowID=HPWOD.IDMaterial
+ and HPWO.ProsesID = (select nextroutingrowid from dbo.fnGetNextRouting (hpwo.TglProses, hpwod.IDmaterial, @ProsesProduksiRowID)) 
+ --and (@ProsesProduksiRowID != (select ProsesProduksiAkhirRowID from fnGetRoutingStartEnd ('FDBC7374-CE00-49A6-85BE-F631E1D41ACC',HPWOD.IDMaterial)))
+  group by hpwo.TglProses ,HPWO.Approved,HPWO.Approvedby,HPWO.ApprovedDate,pp.Nama , pp.RowID
+) x 
+where x.QtyTotal > 0 and @LiniProduksiRowID != '6F1E2F61-611E-40C3-8F00-CD8D6A1114AB' -- Lini Machining Nakayama
+and @ProsesProduksiRowID != 'B2343017-7687-4E30-8823-1C3EE7677C75' --MELTING NAKAYAMA
+
+
+
+union all
+--Ke Proses Produksi Selanjutnya untuk Lini Machining Nakayama,
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, x.Nama as ProsesName    
+,  x.Tanggal    
+, 'Ke '+x.Nama  Uraian    
+, null SaldoAwal
+, X.Approved  
+, X.Approvedby
+, X.ApprovedDate    
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain
+, NULL QtyKeluar 
+, x.QtyTotal as QtyKeLiniBerikutnya 
+, NULL QtyRevisi
+, (-1) * x.QtyTotal as QtyTotal 
+from ISAPabrik.dbo.Material tm  
+cross apply
+(
+	select TOP 1 RowID ProsesProduksiRowID, IDMaterial
+	from
+	(
+			select NextProsesProduksiRowID, IDMaterial 
+			from ProsesProduksiNextMultiple
+			where NextProsesProduksiRowID in
+			(
+				select RowID from ProsesProduksi where IDLini ='6F1E2F61-611E-40C3-8F00-CD8D6A1114AB' -- m/c nky
+			)
+			and IDMaterial=tm.RowID
+		union
+			select ProsesProduksiRowID, IDMaterial
+			from ProsesProduksiNextMultiple
+			where ProsesProduksiRowID in
+			(
+				select RowID from ProsesProduksi where IDLini ='6F1E2F61-611E-40C3-8F00-CD8D6A1114AB'
+			)
+			and IDMaterial=tm.RowID
+	)r
+	join ProsesProduksi pp on r.NextProsesProduksiRowID = pp.RowID
+	order by Nama desc
+)z     
+Cross APPLY     
+(     
+ select hpwo.TglProses Tanggal,HPWO.Approved,HPWO.Approvedby,HPWO.ApprovedDate, sum(HPWOD.Qty + HPWOD.SPOk) QtyTotal, pp.Nama , pp.RowID ProsesRowID  
+ FROM       
+ ISAPabrikProduksi.dbo.HasilProsesWO HPWO      
+ JOIN ISAPabrikProduksi.dbo.HasilProsesWODetail HPWOD ON HPWO.RowID = HPWOD.IDHPWO      
+ join dbo.ProsesProduksi pp on pp.RowID = HPWO.ProsesID        
+ WHERE TglProses BETWEEN @fromdate AND @todate  
+ AND HPWOD.IDMaterial = z.IDMaterial
+ and HPWO.ProsesID = (select nextroutingrowid from dbo.fnGetNextRouting (hpwo.TglProses, hpwod.IDmaterial, @ProsesProduksiRowID)) 
+  group by hpwo.TglProses ,HPWO.Approved,HPWO.Approvedby,HPWO.ApprovedDate,pp.Nama , pp.RowID
+) x 
+outer apply
+(
+	select nextroutingrowid from dbo.fnGetNextRouting (@fromdate, z.IDMaterial, @ProsesProduksiRowID)
+)y
+where x.QtyTotal > 0 and @LiniProduksiRowID = '6F1E2F61-611E-40C3-8F00-CD8D6A1114AB' --Lini Machining Nakayama
+and z.ProsesProduksiRowID = @ProsesProduksiRowID and y.nextroutingrowid is not null
+and @ProsesProduksiRowID != 'B2343017-7687-4E30-8823-1C3EE7677C75' --MELTING NAKAYAMA
+
+union all    
+    
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, x.Nama as ProsesName    
+,  x.Tanggal    
+, 'Sp Produksi' Uraian    
+, null SaldoAwal
+, X.Approved  
+, X.Approvedby
+, X.ApprovedDate    
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain    
+, x.QtyTotal QtyKeluar    
+, null QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, (-1)*x.QtyTotal     
+from ISAPabrik.dbo.Material tm     
+Cross APPLY     
+(     
+ select hpwo.TglProses Tanggal,HPWO.Approved,HPWO.Approvedby,HPWO.ApprovedDate, sum(HPWOD.SPOk) QtyTotal, pp.Nama    
+ FROM       
+ ISAPabrikProduksi.dbo.HasilProsesWO HPWO      
+ JOIN ISAPabrikProduksi.dbo.HasilProsesWODetail HPWOD ON HPWO.RowID = HPWOD.IDHPWO      
+ join dbo.ProsesProduksi pp on pp.RowID = HPWO.ProsesID     
+ WHERE TglProses BETWEEN @fromdate AND @todate         
+ and (HPWO.ProsesID = @ProsesProduksiRowID or @ProsesProduksiRowID is null)    
+ and tm.RowID = hpwod.IDMaterial    
+ Group by hpwo.TglProses,HPWO.Approved,HPWO.Approvedby,HPWO.ApprovedDate, HPWOD.IDMaterial, pp.Nama    
+) x    
+where x.QtyTotal > 0  and x.QtyTotal > 0    
+and @ProsesProduksiRowID != 'B2343017-7687-4E30-8823-1C3EE7677C75' --MELTING NAKAYAMA
+
+---------
+union all    
+    
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, x.Nama as ProsesName    
+,  x.Tanggal    
+, 'Koreksi Saldo' Uraian    
+, null SaldoAwal
+, null Approved    
+, null Approvedby    
+, null ApprovedDate    
+, null qtyMasuk    
+, null qtyProduksi    
+, x.QtyTotal qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain    
+, null QtyKeluar    
+, null QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, x.QtyTotal     
+from ISAPabrik.dbo.Material tm     
+Cross APPLY     
+(     
+ select pr.TglKoreksi Tanggal,'' Approved,'' Approvedby, ''ApprovedDate, sum(prd.Qty) QtyTotal,  pr.NoKoreksi, pp.Nama                
+ FROM                   
+ KoreksiStockWorkcenter pr                
+ join KoreksiStockWorkcenterDetail prd on pr.RowID = prd.IDKoreksi                
+ join dbo.ProsesProduksi pp on pp.RowID = pr.ProsesProduksiRowID                 
+ WHERE pr.TglKoreksi BETWEEN @fromdate AND @todate                  
+ --AND pr.LineProduksiRowID = @LineProduksiRowID                  
+ and tm.RowID = prd.IDMaterial                
+ and (pr.ProsesProduksiRowID = @ProsesProduksiRowID or @ProsesProduksiRowID is null)                
+ Group by pr.TglKoreksi, prd.IDMaterial,  pr.NoKoreksi, pp.Nama     
+) x    
+WHERE @ProsesProduksiRowID != 'B2343017-7687-4E30-8823-1C3EE7677C75' --MELTING NAKAYAMA
+
+----------- Mutasi Stock per 26 Agustus 2016
+union all
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, x.Nama as ProsesName    
+,  x.Tanggal    
+, 'Mutasi Saldo' Uraian    
+, null SaldoAwal
+, null Approved    
+, null Approvedby    
+, null ApprovedDate    
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, x.QtyTotal qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain    
+, null QtyKeluar    
+, null QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, x.QtyTotal     
+from ISAPabrik.dbo.Material tm     
+Cross APPLY     
+(     
+	 select ms.TglMutasi Tanggal,'' Approved,'' Approvedby, ''ApprovedDate, msd.QtyMutasi QtyTotal, pp.Nama
+	 from MutasiStok ms
+	 inner join MutasiStokDetail msd on ms.RowID = msd.HeaderID
+	 join ProsesProduksi pp on pp.RowID = ms.WorkCenter
+	 where ms.TglMutasi between @fromdate and @todate
+	 --and ms.KodeLini = @LineProduksiRowID
+	 and ms.WorkCenter = @ProsesProduksiRowID
+	 and msd.QtyMutasi < 0
+	 and msd.MaterialID = tm.RowID
+  union all
+	 select ms.TglMutasi Tanggal,'' Approved,'' Approvedby, ''ApprovedDate, msd.QtyMutasi QtyTotal, pp.Nama
+	 from MutasiStok ms
+	 inner join MutasiStokDetail msd on ms.RowID = msd.HeaderID
+	 join ProsesProduksi pp on pp.RowID = ms.RowIDWorkCenterKe
+	 where ms.TglMutasi between @fromdate and @todate
+	 --and ms.RowIDLiniKe = @LineProduksiRowID
+	 and ms.RowIDWorkCenterKe = @ProsesProduksiRowID
+	 and msd.QtyMutasi > 0
+	 and msd.MaterialID = tm.RowID  
+) x    
+WHERE @ProsesProduksiRowID != 'B2343017-7687-4E30-8823-1C3EE7677C75' --MELTING NAKAYAMA
+
+-----------------
+union all
+    
+Select 
+case when y.MaterialRowID is null then tm.RowID else y.MaterialRowID end RowID   
+, case when y.MaterialRowID is null then tm.KdMaterial else y.KdMaterial end KdMaterial
+, case when y.MaterialRowID is null then tm.NmMaterial else y.NmMaterial end NmMaterial
+, x.Nama as ProsesName    
+,  x.Tanggal    
+, 'Ke MATERIAL (BAHAN BAKU)' Uraian    
+, null SaldoAwal
+, null Approved    
+, null Approvedby    
+, null ApprovedDate    
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi		
+, null qtyRetur    
+, x.QtyTotal QtyLiniLain    
+, null QtyKeluar    
+, null QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, (-1)*x.QtyTotal     
+from ISAPabrik.dbo.Material tm 
+Cross APPLY     
+(     
+	select x.IDMaterial, z.NextProsesProduksiRowID from 
+		(
+		select distinct IDMaterial 
+		from ProsesProduksiNextMultiple
+		)x
+		outer apply
+		(
+			select NextProsesProduksiRowID from ProsesProduksiNextMultiple
+			where IDMaterial = x.IDMaterial
+			and NextProsesProduksiRowID not in
+			(
+				select ProsesProduksiRowID from ProsesProduksiNextMultiple
+				where IDMaterial = x.IDMaterial
+			)
+		)z
+		where z.NextProsesProduksiRowID = @ProsesProduksiRowID
+		and x.IDMaterial = tm.RowID
+) xx       
+Cross APPLY     
+(     
+	select a.Tanggal Tanggal,'' Approved,'' Approvedby, ''ApprovedDate, sum(b.Qty) QtyTotal, a.NoBukti Nama      
+	from ISAPabrik.dbo.Pengeluaran a
+	inner join ISAPabrik.dbo.PengeluaranDetail b on a.RowID=b.HeaderRowID
+	where --a.LineProduksiDariRowID='771A3CE0-D157-44B2-98BE-641F2ED4C146' --lini nakayama
+	--AND 
+	LineProduksiKeRowID='7AD2D9D0-1041-4039-B248-72126D685B6E' --gudang smf naka--MATERIAL (BAHAN BAKU)
+	--AND a.JenisPengeluaran=1
+	and b.MaterialRowID = xx.IDMaterial
+	and a.Tanggal between @fromdate AND @todate
+	Group by a.Tanggal, b.MaterialRowID , a.NoBukti   
+) x 
+cross apply
+(
+	select mpv.MaterialRowID, m.KdMaterial, m.NmMaterial
+	from ISAPabrik.dbo.MaterialPerVendor mpv
+	join ISAPabrik.dbo.Material m on m.RowID = mpv.MaterialRowID
+	where MatVendorRowID = xx.IDMaterial
+)y   
+where x.QtyTotal > 0
+and @ProsesProduksiRowID != 'B2343017-7687-4E30-8823-1C3EE7677C75' --MELTING NAKAYAMA
+
+
+/** MELTING DI SKIP
+union all
+
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, x.Nama as ProsesName                
+--, 'Casting Alumunium Nakayama' as ProsesName    
+,  x.Tanggal    
+, 'Ke '+x.Nama  Uraian                
+--, 'Ke '+'Casting Alumunium Nakayama'  Uraian    
+, null SaldoAwal    
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain
+, NULL QtyKeluar 
+, x.QtyTotal as QtyKeLiniBerikutnya 
+, NULL QtyRevisi
+, (-1) * x.QtyTotal as QtyTotal 
+from ISAPabrik.dbo.Material tm     
+Cross APPLY     
+(     
+ select hpwo.TglProses Tanggal, sum(hpwokd.Qty + hpwokd.SP) QtyTotal, pp.Nama , pp.RowID ProsesRowID
+from HasilProsesWOKDetail hpwokd left join HasilProsesWODetail hpwod on hpwokd.IDHPWOD = hpwod.RowID             
+left join HasilProsesWO hpwo on hpwo.RowID = hpwokd.IDHPWO 
+join dbo.ProsesProduksi pp on pp.RowID = HPWO.ProsesID -- add               
+where (hpwo.ProsesID = '7D79529F-19C5-4F40-81A6-69521EE30363' --GRAVITY CASTING NAKAYAMA
+OR hpwo.ProsesID = '37B0692F-99A7-47C4-9C21-95C9B2A7A9C8') --DIE CASTING NAKAYAMA  
+and (  
+  HPWO.ProsesID in              
+   (Select distinct rds.NextProsesProduksiRowID from ProsesProduksiNextMultiple rds (nolock)   
+   where rds.ProsesProduksiRowID = @ProsesProduksiRowID )              
+    )             
+and hpwo.TglProses between @fromdate and @todate     
+AND (hpwokd.IDMaterial='A7AEE1D9-EDFC-463D-82B4-64E78AF5F7ED' --ALUMUNIUM CAIR ADC-12  
+OR hpwokd.IDMaterial='D07690EE-1333-4AF6-97EB-8E0EE67165CA' --ALUMUNIUM CAIR  
+OR hpwokd.IDMaterial='B3A57893-2A45-49C6-8B28-C1CC6DE3A7E4' --ALUMUNIUM CAIR KW-2  
+OR hpwokd.IDMaterial='ACCBFA7F-61BD-4964-AD9D-C4D1AE956379') --ALUMUNIUM CAIR AC 4B  
+AND hpwokd.IDMaterial=tm.RowID
+  group by hpwo.TglProses,pp.Nama , pp.RowID  
+) x 
+join ProsesProduksi pp2 on pp2.RowID = @ProsesProduksiRowID  
+where x.QtyTotal > 0  
+AND @ProsesProduksiRowID='B2343017-7687-4E30-8823-1C3EE7677C75'	--MELTING NAKAYAMA  
+
+**/
+------------------
+union all
+-- split shoe vega jd AB di proses washing
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, x.Nama as ProsesName                
+,  x.Tanggal    
+, 'Ke '+x.Nama  Uraian                
+, null SaldoAwal
+, x.Approved    
+, x.Approvedby    
+, x.ApprovedDate    
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain
+, NULL QtyKeluar 
+, x.QtyTotal as QtyKeLiniBerikutnya 
+, NULL QtyRevisi
+, (-1) * x.QtyTotal as QtyTotal 
+from ISAPabrik.dbo.Material tm     
+Cross APPLY     
+(     
+	select hpwo.TglProses Tanggal,hpwo.Approved,hpwo.Approvedby,hpwo.ApprovedDate, sum(hpwokd.Qty + hpwokd.SP) QtyTotal, pp.Nama , pp.RowID ProsesRowID
+	from HasilProsesWOKDetail hpwokd left join HasilProsesWODetail hpwod on hpwokd.IDHPWOD = hpwod.RowID             
+	left join HasilProsesWO hpwo on hpwo.RowID = hpwokd.IDHPWO 
+	join dbo.ProsesProduksi pp on pp.RowID = HPWO.ProsesID -- add               
+	where (hpwo.ProsesID = '9BB5E9D6-EE83-4DB8-8EC1-C6E156F91BD3') --WASHING NAKAYAMA 
+	and 
+	(  
+		HPWO.ProsesID in 
+		(
+			Select distinct rds.NextProsesProduksiRowID from ProsesProduksiNextMultiple rds (nolock)   
+			where rds.ProsesProduksiRowID = @ProsesProduksiRowID 
+		)
+	)             
+	and hpwo.TglProses between @fromdate and @todate     
+	AND (hpwokd.IDMaterial='DD231521-8E53-4CA3-9511-795733EC2B35' --SHOE VEGA A
+	OR hpwokd.IDMaterial='606AF079-2E57-44A2-BE72-EA959BDEA2F8') --SHOE VEGA B 
+	AND hpwokd.IDMaterial=tm.RowID
+	group by hpwo.TglProses,HPWO.Approved,HPWO.Approvedby,HPWO.ApprovedDate,pp.Nama , pp.RowID  
+) x 
+join ProsesProduksi pp2 on pp2.RowID = @ProsesProduksiRowID  
+where x.QtyTotal > 0  
+AND @ProsesProduksiRowID='AE867A9A-0160-49E5-9BD8-4E73A007F2BD'	--BUFFING NAKAYAMA  
+
+-------------
+
+--union all
+
+--Select tm.RowID    
+--, tm.KdMaterial    
+--, tm.NmMaterial    
+--, pp.Nama as ProsesName    
+--, xz.TglKirim Tanggal    
+--, 'Ke Penjualan' Uraian    
+--, null SaldoAwal    
+--, null qtyMasuk    
+--, null qtyProduksi    
+--, null qtyKoreksi    
+--, null qtyMutasi    
+--, null qtyRetur    
+--, xz.Qty QtyLiniLain    
+--, NULL QtyKeluar    
+--, NULL QtyKeLiniBerikutnya
+--, NULL QtyRevisi
+--, (-1)*xz.Qty
+--from ISAPabrik.dbo.Material tm     
+--Cross APPLY     
+--(     
+--	select x.IDMaterial, z.NextProsesProduksiRowID from 
+--		(
+--		select distinct IDMaterial 
+--		from ProsesProduksiNextMultiple
+--		)x
+--		outer apply
+--		(
+--			select NextProsesProduksiRowID from ProsesProduksiNextMultiple
+--			where IDMaterial = x.IDMaterial
+--			and NextProsesProduksiRowID not in
+--			(
+--				select ProsesProduksiRowID from ProsesProduksiNextMultiple
+--				where IDMaterial = x.IDMaterial
+--			)
+--		)z
+--		where z.NextProsesProduksiRowID = @ProsesProduksiRowID
+--		and x.IDMaterial = tm.RowID
+--) xx    
+--cross apply
+--(
+--	select 
+--	NoDO, 
+--	dod.IDMaterial,
+--	m.KdMaterial,
+--	m.NmMaterial,
+--	do.TglKirim,
+--	SUM(dod.Qty) Qty
+--	from ISAPabrikPenjualan.dbo.DeliveryOrder DO
+--	join ISAPabrikPenjualan.dbo.DeliveryOrderDetail DOD on DO.RowID = DOD.IDDO
+--	left join ISAPabrikPenjualan.dbo.SalesOrderDetail sod (nolock) on sod.RowID=dod.IDSODetail  
+--	left join ISAPabrikPenjualan.dbo.SalesOrder so (nolock) on so.RowID=sod.IDSO 
+--	join ISAPabrik.dbo.Material m on m.RowID = dod.IDMaterial 
+--	where DO.TglKirim between @fromdate and @todate
+--	and dod.IDMaterial = xx.IDMaterial
+--	group by NoDO, dod.IDMaterial, m.KdMaterial, m.NmMaterial, do.TglKirim
+--)xz
+--join ProsesProduksi pp on pp.RowID = xx.NextProsesProduksiRowID
+
+union all
+-- Hasil Produksi untuk Lini Machining, karena hasilnya hanya mengambil routing terakhir dari materialnya
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, x.Nama as ProsesName    
+, x.Tanggal    
+, 'Hasil Produksi' Uraian    
+, null SaldoAwal
+,x.Approved
+,x.Approvedby
+,x.ApprovedDate
+, null qtyMasuk    
+, x.QtyTotal qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain    
+, NULL QtyKeluar    
+, NULL QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, x.QtyTotal 
+from ISAPabrik.dbo.Material tm   
+cross apply
+(
+	select TOP 1 RowID ProsesProduksiRowID
+	from
+	(
+			select NextProsesProduksiRowID 
+			from ProsesProduksiNextMultiple
+			where NextProsesProduksiRowID in
+			(
+				select RowID from ProsesProduksi where IDLini ='6F1E2F61-611E-40C3-8F00-CD8D6A1114AB'
+			)
+			and IDMaterial=tm.RowID
+		union
+			select ProsesProduksiRowID 
+			from ProsesProduksiNextMultiple
+			where ProsesProduksiRowID in
+			(
+				select RowID from ProsesProduksi where IDLini ='6F1E2F61-611E-40C3-8F00-CD8D6A1114AB'
+			)
+			and IDMaterial=tm.RowID
+	)r
+	join ProsesProduksi pp on r.NextProsesProduksiRowID = pp.RowID
+	order by Nama desc
+)z  
+Cross APPLY     
+(     
+ select hpwo.TglProses Tanggal,HPWO.Approved,HPWO.Approvedby,HPWO.ApprovedDate, sum(HPWOD.Qty) QtyTotal, pp.Nama, HPWOD.IDMaterial   
+ FROM       
+ ISAPabrikProduksi.dbo.HasilProsesWO HPWO      
+ JOIN ISAPabrikProduksi.dbo.HasilProsesWODetail HPWOD ON HPWO.RowID = HPWOD.IDHPWO      
+ join dbo.ProsesProduksi pp on pp.RowID =HPWO.ProsesID    
+ WHERE TglProses BETWEEN @fromdate AND @todate          
+ and tm.RowID = hpwod.IDMaterial    
+ and z.ProsesProduksiRowID = @ProsesProduksiRowID
+ and (HPWO.ProsesID = z.ProsesProduksiRowID) 
+ Group by hpwo.TglProses,HPWO.Approved,HPWO.Approvedby,HPWO.ApprovedDate, HPWOD.IDMaterial,pp.Nama    
+) x     
+where x.QtyTotal > 0  and x.QtyTotal > 0 
+and @LiniProduksiRowID = '6F1E2F61-611E-40C3-8F00-CD8D6A1114AB' --Lini Machining Nakayama
+
+union all
+
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, y.Nama as ProsesName    
+, x.TglProses    
+, 'Hasil Produksi' Uraian    
+, null SaldoAwal
+,x.Approved
+,x.Approvedby
+,x.ApprovedDate    
+, null qtyMasuk    
+, x.QtyTotal qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain    
+, null QtyKeluar    
+, null QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, x.QtyTotal     
+from ISAPabrik.dbo.Material tm 
+cross apply
+(
+	select TOP 1 RowID ProsesProduksiRowID, IDMaterial
+	from
+	(
+			select NextProsesProduksiRowID, IDMaterial 
+			from ProsesProduksiNextMultiple
+			where NextProsesProduksiRowID in
+			(
+				select RowID from ProsesProduksi where IDLini ='6F1E2F61-611E-40C3-8F00-CD8D6A1114AB'
+			)
+			and IDMaterial=tm.RowID
+		union
+			select ProsesProduksiRowID, IDMaterial
+			from ProsesProduksiNextMultiple
+			where ProsesProduksiRowID in
+			(
+				select RowID from ProsesProduksi where IDLini ='6F1E2F61-611E-40C3-8F00-CD8D6A1114AB'
+			)
+			and IDMaterial=tm.RowID
+	)r
+	join ProsesProduksi pp on r.NextProsesProduksiRowID = pp.RowID
+	order by Nama desc
+)z     
+Cross APPLY     
+(     
+	select HPWO.TglProses,HPWO.Approved,HPWO.Approvedby,HPWO.ApprovedDate, sum(HPWOD.SPOk) QtyTotal   
+	FROM ISAPabrikProduksi.dbo.HasilProsesWO HPWO      
+	JOIN ISAPabrikProduksi.dbo.HasilProsesWODetail HPWOD ON HPWO.RowID = HPWOD.IDHPWO      
+	join dbo.ProsesProduksi pp on pp.RowID = HPWO.ProsesID     
+	WHERE TglProses BETWEEN @fromdate AND @todate         
+	and HPWO.ProsesID in (select RowID from ProsesProduksi where IDLini = @LiniProduksiRowID) 
+	and hpwod.IDMaterial = z.IDMaterial
+	Group by HPWOD.IDMaterial, HPWO.TglProses,HPWO.Approved,HPWO.Approvedby,HPWO.ApprovedDate  
+) x 
+outer apply
+(
+	select Nama from ProsesProduksi where RowID = @ProsesProduksiRowID
+)y   
+where x.QtyTotal > 0  and x.QtyTotal > 0 
+and @LiniProduksiRowID = '6F1E2F61-611E-40C3-8F00-CD8D6A1114AB' --Lini Machining Nakayama  
+and z.ProsesProduksiRowID = @ProsesProduksiRowID 
+
+union all
+-- Produksi Casting Sand Core add 28 nov 2016
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, x.Nama as ProsesName    
+, x.Tanggal    
+, 'Produksi Casting' Uraian    
+, null SaldoAwal
+,x.Approved
+,x.Approvedby
+,x.ApprovedDate    
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain    
+, null QtyKeluar    
+, x.Qty QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, (-1)*x.Qty    
+from ISAPabrik.dbo.Material tm     
+Cross APPLY     
+(     
+	select hpwo.TglProses Tanggal,hpwo.Approved,hpwo.Approvedby,hpwo.ApprovedDate,Qty, Nama
+	from HasilProsesWOKDetail hpwokd 
+	join HasilProsesWO hpwo on hpwo.RowID = hpwokd.IDHPWO
+	join ProsesProduksi pp on pp.RowID = hpwo.ProsesID
+	where hpwokd.IDMaterial = tm.RowID
+	and tm.NmMaterial like '%sand%core%'
+	and TipeItem = 1
+	and hpwo.TglProses between @fromdate and @todate
+) x   
+where tm.Status>0 and @LiniProduksiRowID != '6F1E2F61-611E-40C3-8F00-CD8D6A1114AB' --Lini Machining Nakayama 
+and @ProsesProduksiRowID ='39B6FD9E-BF9A-4CCC-AB77-E4CA5F2162EC' -- sand core
+
+union all
+-- Penambahan untuk membaca DO 22 Feb 2017
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, 'Ke Penjualan' as ProsesName    
+, x.TglDO Tanggal    
+, 'No DO : '+x.NoDO Uraian    
+, null SaldoAwal
+,w.Approved
+,w.Approvedby
+,w.ApprovedDate    
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain    
+, null QtyKeluar    
+, (x.Qty+ISNULL(x.JmlKoreksi,0)) QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, (-1)*(x.Qty+ISNULL(x.JmlKoreksi,0))
+from ISAPabrik.dbo.Material tm    
+CROSS APPLY                 
+(                 
+	 select distinct hpwod.IDMaterial,HPWO.Approved,HPWO.Approvedby,HPWO.ApprovedDate             
+	 FROM ISAPabrikProduksi.dbo.HasilProsesWO HPWO                  
+	 JOIN ISAPabrikProduksi.dbo.HasilProsesWODetail HPWOD ON HPWO.RowID = HPWOD.IDHPWO                                
+	 WHERE HPWO.ProsesID =@ProsesProduksiRowID       
+	 and HPWOD.IDMaterial = tm.RowID         
+) w            
+Cross apply            
+(            
+	select kor.TglDO, (kor.Jml) Qty, (kor.JMlKoreksi) JMlKoreksi, kor.NoDO, kor.IDMaterial
+	from
+	(
+		select do.TglDO, do.NoDO, dod.Qty Jml, ISNULL(kod.QtyKoreksi,0)-ISNULL(kod.QtyDO,0) JMlKoreksi, ISNULL(kod.IDMaterial,dod.IDMaterial) IDMaterial
+		from ISAPabrikPenjualan.dbo.DeliveryOrder do
+		join ISAPabrikPenjualan.dbo.DeliveryOrderDetail dod on do.RowID = dod.IDDO
+		left join ISAPabrikPenjualan.dbo.KoreksiDODetail kod on kod.IDDODetail = dod.RowID
+		where do.TglDO between @fromdate and @todate     
+		AND (do.IDLini='771A3CE0-D157-44B2-98BE-641F2ED4C146') -- Lini NAKAYAMA
+		
+		--union
+		
+		--select do.TglDO, do.NoDO, dod.Qty Jml, ISNULL(kod.QtyKoreksi,0)-ISNULL(kod.QtyDO,0) JMlKoreksi, ISNULL(kod.IDMaterial,dod.IDMaterial) IDMaterial
+		--from [131.68.5.221,1433].ISAPabrikPenjualan.dbo.DeliveryOrder do
+		--join [131.68.5.221,1433].ISAPabrikPenjualan.dbo.DeliveryOrderDetail dod on do.RowID = dod.IDDO
+		--left join [131.68.5.221,1433].ISAPabrikPenjualan.dbo.KoreksiDODetail kod on kod.IDDODetail = dod.RowID
+		--left join [131.68.5.221,1433].ISAPabrik.dbo.Material M on M.RowID = dod.IDMaterial	
+		--where do.TglDO between @fromdate and @todate     
+		--AND (do.IDLini='3D9E9EE0-816D-414B-9EE6-A2D37DEC492B') -- Lini GD KARAWANG ISA PABRIK
+		--and m.NmMaterial not like 'under%' and m.NmMaterial not like 'Upper%' and m.NmMaterial not like 'Tank%'
+		--and m.NmMaterial not like 'spring seat%'
+		
+		--union
+		
+		--select do.TglDO, do.NoDO, dod.Qty Jml, ISNULL(kod.QtyKoreksi,0)-ISNULL(kod.QtyDO,0) JMlKoreksi, ISNULL(kod.IDMaterial,dod.IDMaterial) IDMaterial
+		--from [131.68.5.221,1433].ISAPabrikPenjualan.dbo.DeliveryOrder do
+		--join [131.68.5.221,1433].ISAPabrikPenjualan.dbo.DeliveryOrderDetail dod on do.RowID = dod.IDDO
+		--left join [131.68.5.221,1433].ISAPabrikPenjualan.dbo.KoreksiDODetail kod on kod.IDDODetail = dod.RowID
+		--where do.TglDO between @fromdate and @todate     
+		--AND (do.IDLini='DFF7EEAA-577F-44BC-AECA-F28F0424BF46') -- Lini Packing OEM ISA PABRIK
+		--and dod.IDMaterial = '23D7E674-8CF0-4495-BE87-0C16B3CB0EFD'
+		
+		-- DO naka ke SASS
+		union all --tambahan
+		
+		select do.TglDO, do.NoDO, dod.Qty Jml, ISNULL(kod.QtyKoreksi,0)-ISNULL(kod.QtyDO,0) JMlKoreksi, ISNULL(kod.IDMaterial,dod.IDMaterial) IDMaterial
+		from ISAPabrikPenjualan..DeliveryOrder do
+		join ISAPabrikPenjualan..DeliveryOrderDetail dod on do.RowID = dod.IDDO
+		left join ISAPabrikPenjualan..KoreksiDODetail kod on kod.IDDODetail = dod.RowID
+		where do.TglDO between @fromdate and @todate     
+		AND (do.IDLini='72BF6128-9189-4FDE-AD4E-486E1CE49672') -- Lini Packing nakayama
+		-- and dod.IDMaterial = '23D7E674-8CF0-4495-BE87-0C16B3CB0EFD'	
+	)kor
+	where kor.IDMaterial = w.IDMaterial
+)x            
+where x.Qty >0 AND @ProsesProduksiRowID ='05A91530-F6CF-4770-9D9F-2A6F7D1CF86C' --PACKING NAKAYAMA   
+      
+union all
+-- Penambahan untuk membaca HasilQC 22 Feb 2017
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, x.Nama as ProsesName    
+, x.Tanggal Tanggal    
+, 'Reject QC' Uraian    
+, null SaldoAwal
+,null Approved    
+,null Approvedby
+,null ApprovedDate
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain    
+, x.QtyTotal QtyKeluar    
+, NULL QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, (-1)*x.QtyTotal
+from ISAPabrik.dbo.Material tm    
+Cross APPLY                 
+(                 
+	 select hqc.TglProses Tanggal,'' Approved,'' Approvedby, ''ApprovedDate, sum(hqc.QtySP+SPKropos+SPMeleset) QtyTotal, pp.Nama                
+	 FROM                   
+	 ISAPabrikProduksi.dbo.HasilQCCek HQC                                  
+	 join dbo.ProsesProduksi pp on pp.RowID = HQC.ProsesID                
+	 WHERE TglProses BETWEEN @fromdate AND @todate                  
+	 AND HQC.IDLiniProduksi = @LiniProduksiRowID                  
+	 and (HQC.ProsesID = @ProsesProduksiRowID or @ProsesProduksiRowID is null)                
+	 and tm.RowID = HQC.IDMaterial                
+	 Group by HQC.TglProses, hqc.IDMaterial, pp.Nama                
+) x                
+where x.QtyTotal > 0
+
+union all
+-- Baca Pengeluaran untuk yang routing terakhir
+Select 
+  tm.RowID
+, tm.KdMaterial
+, tm.NmMaterial
+, x.Nama as ProsesName    
+,  x.Tanggal    
+, 'Ke GUDANG SMF NAKAYAMA' Uraian    
+, null SaldoAwal
+,null Approved    
+,null Approvedby
+,null ApprovedDate    
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi		
+, null qtyRetur    
+, null QtyLiniLain    
+, null QtyKeluar    
+, x.QtyTotal QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, (-1)*x.QtyTotal     
+from ISAPabrik.dbo.Material tm (NOLOCK)
+--Cross APPLY     
+--(     
+--	select x.IDMaterial, z.NextProsesProduksiRowID from 
+--		(
+--		select distinct IDMaterial 
+--		from ProsesProduksiNextMultiple
+--		)x
+--		outer apply
+--		(
+--			select NextProsesProduksiRowID from ProsesProduksiNextMultiple
+--			where IDMaterial = x.IDMaterial
+--			and NextProsesProduksiRowID not in
+--			(
+--				select ProsesProduksiRowID from ProsesProduksiNextMultiple
+--				where IDMaterial = x.IDMaterial
+--			)
+--		)z
+--		where z.NextProsesProduksiRowID = @ProsesProduksiRowID
+--		and @ProsesProduksiRowID != '53FA56A4-5D6D-47B3-9979-ADC6545912FC'
+--		and x.IDMaterial = tm.RowID
+--) xx       
+Cross APPLY     
+(     
+	select a.Tanggal Tanggal,'' Approved,'' Approvedby, ''ApprovedDate, sum(b.Qty) QtyTotal, a.NoBukti Nama      
+	from ISAPabrik.dbo.Pengeluaran a (NOLOCK)
+	inner join ISAPabrik.dbo.PengeluaranDetail b (NOLOCK) on a.RowID=b.HeaderRowID
+	where LineProduksiKeRowID='7AD2D9D0-1041-4039-B248-72126D685B6E' --GUDANG SMF NAKAYAMA
+	and b.MaterialRowID = tm.RowID	
+	and b.MaterialRowID = (select IDMaterial from [dbo].[fnGetRoutingStartEndHistoryNew]('FDBC7374-CE00-49A6-85BE-F631E1D41ACC',tm.RowID,a.Tanggal,GETDATE(), DATEADD(D, 1, GETDATE())) where ProsesProduksiAkhirRowID = @ProsesProduksiRowID and @ProsesProduksiRowID != '53FA56A4-5D6D-47B3-9979-ADC6545912FC')
+	and a.Tanggal between @fromdate AND @todate
+	and a.NoBukti like '%/S'
+	--AND B.MaterialRowID NOT IN-- TIOCM 8 MARET 21
+	--(
+	--	'1031CFFC-83F5-4DA8-8B16-C41A77343A14', -- CLUTCH LEVER - 219366
+	--	'1217F7DC-CD82-4950-A327-463A169886C0', -- FRONT BRACKET GD 117711-1
+	--	'3073A909-2287-43E4-86B1-32AAA725839F' -- UPPER BRACKET 12161-01908
+	--)
+	Group by a.Tanggal, b.MaterialRowID , a.NoBukti   
+) x  
+where x.QtyTotal > 0
+and @ProsesProduksiRowID != '37B0692F-99A7-47C4-9C21-95C9B2A7A9C8' --DIE CASTING NAKAYAMA(edit by Yeti09/11/20)
+--AND @ProsesProduksiRowID != '27787FFA-C49C-4CBF-86FF-162DF758685D' --SHOTBLAST (TIOCM 27/02/2021)
+--and @ProsesProduksiRowID != 'AE867A9A-0160-49E5-9BD8-4E73A007F2BD' -- BUFFING NAKAYAMA
+--and Tanggal >= '20211213')--5/1/2022
+
+union all
+-- Tambahan untuk Ke Packing Nakayama
+-- khusus hanya materisl yang routing terakhir leak teast nakayama -- 27 April 2017
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, x.Nama  as ProsesName    
+,  x.Tanggal    
+, 'Ke '+x.Nama Uraian    
+, null SaldoAwal
+,x.Approved
+,x.Approvedby
+,x.ApprovedDate    
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain
+, NULL QtyKeluar 
+, x.QtyTotal as QtyKeLiniBerikutnya 
+, NULL QtyRevisi
+, (-1) * x.QtyTotal as QtyTotal 
+from ISAPabrik.dbo.Material tm     
+cross apply
+(
+	select IDMaterial from ProsesProduksiNextMultiple ppnm
+	where ppnm.NextProsesProduksiRowID = @ProsesProduksiRowID
+	and ppnm.NextProsesProduksiRowID not in
+	(
+		select ProsesProduksiRowID from ProsesProduksiNextMultiple ppnm2
+		where ppnm2.IDMaterial = ppnm.IDMaterial
+	)
+	and ppnm.IDMaterial = tm.RowID
+)mat
+Cross APPLY     
+(     
+	select hpwo.TglProses Tanggal,HPWO.Approved,HPWO.Approvedby,HPWO.ApprovedDate, sum(HPWOKD.Qty) QtyTotal, pp.Nama , pp.RowID ProsesRowID  
+	FROM       
+	ISAPabrikProduksi.dbo.HasilProsesWOKDetail HPWOKD     
+	--JOIN ISAPabrikProduksi.dbo.HasilProsesWODetail HPWOD ON HPWO.RowID = HPWOD.IDHPWO 
+	JOIN ISAPabrikProduksi.dbo.HasilProsesWO HPWO ON HPWO.RowID = HPWOKD.IDHPWO     
+	join dbo.ProsesProduksi pp on pp.RowID = HPWO.ProsesID
+	WHERE TglProses BETWEEN @fromdate AND @todate  
+	AND HPWOKD.IDMaterial = mat.IDMaterial
+	AND HPWO.ProsesID ='05A91530-F6CF-4770-9D9F-2A6F7D1CF86C'  -- packing nakayama
+	group by hpwo.TglProses ,HPWO.Approved,HPWO.Approvedby,HPWO.ApprovedDate,pp.Nama , pp.RowID
+) x 
+where x.QtyTotal > 0 and @LiniProduksiRowID != '6F1E2F61-611E-40C3-8F00-CD8D6A1114AB' -- Lini Machining Nakayama
+and @ProsesProduksiRowID = '53FA56A4-5D6D-47B3-9979-ADC6545912FC' --LEAK TEAST NAKAYAMA
+
+union all
+-- Tambahan untuk Ke Packing Nakayama, khusus hanya materisl yang routing terakhir MC OP 1 nakayama dan lini machining nakayama -- 2 Mei 2017
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, x.Nama  as ProsesName    
+,  x.Tanggal    
+, 'Ke '+x.Nama Uraian    
+, null SaldoAwal
+,x.Approved
+,x.Approvedby
+,x.ApprovedDate    
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain
+, NULL QtyKeluar 
+, x.QtyTotal as QtyKeLiniBerikutnya 
+, NULL QtyRevisi
+, (-1) * x.QtyTotal as QtyTotal 
+from ISAPabrik.dbo.Material tm     
+cross apply
+(
+	select IDMaterial from ProsesProduksiNextMultiple ppnm
+	where ppnm.ProsesProduksiRowID = @ProsesProduksiRowID
+	and ppnm.NextProsesProduksiRowID is null
+	and ppnm.IDMaterial = tm.RowID
+	and tm.RowID in ('DE194635-3E0B-4971-9035-B2D299C47EEB','79670904-39ED-44BC-A1D4-3A5356FAA66A') -- STAY MIRROR FUSO
+)mat
+Cross APPLY     
+(     
+	select hpwo.TglProses Tanggal,HPWO.Approved,HPWO.Approvedby,HPWO.ApprovedDate, sum(HPWOKD.Qty) QtyTotal, pp.Nama , pp.RowID ProsesRowID  
+	FROM       
+	ISAPabrikProduksi.dbo.HasilProsesWO HPWO      
+	--JOIN ISAPabrikProduksi.dbo.HasilProsesWODetail HPWOD ON HPWO.RowID = HPWOD.IDHPWO 
+	JOIN ISAPabrikProduksi.dbo.HasilProsesWOKDetail HPWOKD ON HPWO.RowID = HPWOKD.IDHPWO     
+	join dbo.ProsesProduksi pp on pp.RowID = HPWO.ProsesID        
+	WHERE TglProses BETWEEN @fromdate AND @todate  
+	AND HPWOKD.IDMaterial = mat.IDMaterial
+	AND HPWO.ProsesID ='05A91530-F6CF-4770-9D9F-2A6F7D1CF86C' -- packing nakayama
+	group by hpwo.TglProses ,HPWO.Approved,HPWO.Approvedby,HPWO.ApprovedDate,pp.Nama , pp.RowID
+) x 
+where x.QtyTotal > 0 and @LiniProduksiRowID = '6F1E2F61-611E-40C3-8F00-CD8D6A1114AB' -- Lini Machining Nakayama
+and @ProsesProduksiRowID ='2848AE06-AFBC-453D-B38C-EC80A1BD16C2' -- M/C OP 1 NAKAYAMA
+
+union all
+--< RE-INGOT >--
+Select 
+  tm.RowID
+, tm.KdMaterial
+, tm.NmMaterial
+, x.Nama as ProsesName    
+,  x.Tanggal    
+, 'Ke MATERIAL (BAHAN BAKU)' Uraian    
+, null SaldoAwal
+,null Approved
+,null Approvedby
+,null ApprovedDate    
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi		
+, null qtyRetur    
+, x.QtyTotal QtyLiniLain    
+, null QtyKeluar    
+, null QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, (-1)*x.QtyTotal     
+from ISAPabrik.dbo.Material tm 
+Cross APPLY     
+(     
+	select a.Tanggal Tanggal,'' Approved,'' Approvedby, ''ApprovedDate, sum(b.Qty) QtyTotal, a.NoBukti Nama      
+	from ISAPabrik.dbo.Pengeluaran a
+	inner join ISAPabrik.dbo.PengeluaranDetail b on a.RowID=b.HeaderRowID
+	where LineProduksiKeRowID='54D40E8C-2B89-4010-AF76-26A1BDA6B798' --MATERIAL (BAHAN BAKU)
+	and LineProduksiDariRowID in 
+	(
+		'3DB44C5C-0AF4-4EA1-B653-B899A04F307C' --GUDANG NAKAYAMA
+	)
+	and b.MaterialRowID = tm.RowID
+	and b.MaterialRowID not in ('F17CE0CD-F7D7-441E-9637-7A5395F24A0A','71550177-7537-4D9A-AD25-21E18C338238')
+	and tm.NmMaterial like '%INGOT%REPROSES%'
+	and a.Tanggal between @fromdate AND @todate
+	Group by a.Tanggal, b.MaterialRowID , a.NoBukti   
+) x  
+where x.QtyTotal > 0
+and @ProsesProduksiRowID ='7D79529F-19C5-4F40-81A6-69521EE30363' -- GRAVITY CASTING NAKAYAMA
+
+union all
+Select 
+  tm.RowID
+, tm.KdMaterial
+, tm.NmMaterial
+, x.Nama as ProsesName    
+,  x.Tanggal    
+, 'Ke MATERIAL (BAHAN BAKU)' Uraian    
+, null SaldoAwal
+,null Approved
+,null Approvedby
+,null ApprovedDate     
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi		
+, null qtyRetur    
+, x.QtyTotal QtyLiniLain    
+, null QtyKeluar    
+, null QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, (-1)*x.QtyTotal     
+from ISAPabrik.dbo.Material tm 
+Cross APPLY     
+(     
+	select a.Tanggal Tanggal,'' Approved,'' Approvedby, ''ApprovedDate, sum(b.Qty) QtyTotal, a.NoBukti Nama      
+	from ISAPabrik.dbo.Pengeluaran a
+	inner join ISAPabrik.dbo.PengeluaranDetail b on a.RowID=b.HeaderRowID
+	where LineProduksiKeRowID='54D40E8C-2B89-4010-AF76-26A1BDA6B798' --MATERIAL (BAHAN BAKU)
+	and LineProduksiDariRowID in 
+	(
+		'3DB44C5C-0AF4-4EA1-B653-B899A04F307C' --GUDANG NAKAYAMA
+	)
+	and b.MaterialRowID = tm.RowID
+	and (b.MaterialRowID = 'F17CE0CD-F7D7-441E-9637-7A5395F24A0A' --1270008-HD2 INGOT ALUMUNIUM (REPROSES) - HD2
+	OR b.MaterialRowID ='71550177-7537-4D9A-AD25-21E18C338238')--1270008-KW2 INGOT ALUMUNIUM (REPROSES) - KW2
+	and a.Tanggal between @fromdate AND @todate
+	Group by a.Tanggal, b.MaterialRowID , a.NoBukti   
+) x  
+where x.QtyTotal > 0
+and @ProsesProduksiRowID ='37B0692F-99A7-47C4-9C21-95C9B2A7A9C8' --DIE CASTING NAKAYAMA
+--< END RE-INGOT >--
+
+-- Ke Packing Nakayama | TIOCM: 8 MARET 2021
+--union all
+--Select 
+--  tm.RowID
+--, tm.KdMaterial
+--, tm.NmMaterial
+--, x.Nama as ProsesName    
+--,  x.Tanggal    
+--, 'Ke ' + x.Nama Uraian    
+--, null SaldoAwal    
+--, null qtyMasuk    
+--, null qtyProduksi    
+--, null qtyKoreksi    
+--, null qtyMutasi		
+--, null qtyRetur    
+--, NULL QtyLiniLain    
+--, null QtyKeluar    
+--, x.QtyTotal QtyKeLiniBerikutnya
+--, NULL QtyRevisi
+--, (-1)*x.QtyTotal     
+--from ISAPabrik.dbo.Material tm 
+--Cross APPLY     
+--(     
+--	select a.IDMaterial, m.KdMaterial, m.NmMaterial, c.TglProses Tanggal, pp.Nama,sum(a.Qty) QtyTotal
+--	from HasilProsesWOKDetail a
+--	join HasilProsesWODetail b on b.RowID=a.IDHPWOD
+--	join HasilProsesWO c on c.RowID=b.IDHPWO
+--	join ISAPabrik.dbo.Material m on m.RowID=a.IDMaterial
+--	join dbo.ProsesProduksi pp on pp.RowID = c.ProsesID
+--	where TglProses between @fromdate and @todate
+--	and c.ProsesID= '05A91530-F6CF-4770-9D9F-2A6F7D1CF86C' -- PACKING NAKAYAMA
+--	AND a.IDMaterial=tm.RowID
+--	AND A.IDMaterial IN
+--	(
+--		'1031CFFC-83F5-4DA8-8B16-C41A77343A14', --CLUTCH LEVER - 219366
+--		'1217F7DC-CD82-4950-A327-463A169886C0', --FRONT BRACKET GD 117711-1
+--		'3073A909-2287-43E4-86B1-32AAA725839F' -- UPPER BRACKET 12161-01908
+--	)
+--	group by a.IDMaterial, m.KdMaterial, m.NmMaterial, pp.Nama, TglProses
+--) x  
+--where x.QtyTotal > 0
+--and @ProsesProduksiRowID = 'AE867A9A-0160-49E5-9BD8-4E73A007F2BD' -- BUFFING
+
+union all
+Select 
+  tm.RowID
+, tm.KdMaterial
+, tm.NmMaterial
+, Nama as ProsesName    
+,  x.Tanggal    
+, 'Ke ' + X.Nama Uraian    
+, null SaldoAwal
+,null Approved
+,null Approvedby
+,null ApprovedDate     
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi		
+, null qtyRetur    
+, NULL QtyLiniLain    
+, null QtyKeluar    
+, x.QtyTotal QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, (-1)*x.QtyTotal     
+from ISAPabrik.dbo.Material tm 
+Cross APPLY     
+(     
+	select a.MaterialRowID, b.Tanggal Tanggal,'' Approved,'' Approvedby, ''ApprovedDate, 'GUDANG FINISHED GOOD' Nama,sum(a.Qty) QtyTotal
+	from ISAPabrik.dbo.PengeluaranDetail a
+	join ISAPabrik.dbo.Pengeluaran b on b.RowID=a.HeaderRowID
+	where b.Tanggal between @fromdate and @todate
+	and a.MaterialRowID=tm.RowID
+	and b.LineProduksiKeRowID='151375F4-C2D4-458C-A396-493E6DA7CD81' -- gudang finished good
+	and b.LineProduksiDariRowID='72BF6128-9189-4FDE-AD4E-486E1CE49672' -- packing nakayama
+	group by a.MaterialRowID, b.Tanggal
+) x  
+where x.QtyTotal > 0
+and @ProsesProduksiRowID = '05A91530-F6CF-4770-9D9F-2A6F7D1CF86C' -- PACKING NAKAYAMA
+
+union all
+
+Select 
+  tm.RowID
+, tm.KdMaterial
+, tm.NmMaterial
+, x.Nama as ProsesName    
+,  x.Tanggal    
+, 'Ke GUDANG SMF NAKAYAMA' Uraian    
+, null SaldoAwal
+,null Approved
+,null Approvedby
+,null ApprovedDate     
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi		
+, null qtyRetur    
+, null QtyLiniLain    
+, null QtyKeluar    
+, x.QtyTotal QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, (-1)*x.QtyTotal     
+from ISAPabrik.dbo.Material tm       
+Cross APPLY     
+(     
+	select a.Tanggal Tanggal,'' Approved,'' Approvedby, ''ApprovedDate, sum(b.Qty) QtyTotal, a.NoBukti Nama      
+	from ISAPabrik.dbo.Pengeluaran a
+	inner join ISAPabrik.dbo.PengeluaranDetail b on a.RowID=b.HeaderRowID
+	where LineProduksiKeRowID='7AD2D9D0-1041-4039-B248-72126D685B6E' --GUDANG SMF NAKAYAMA
+	and LineProduksiDariRowID='6C731B96-86B5-4F45-8CFC-FB0637CE9A46'
+	and b.MaterialRowID = tm.RowID
+	and a.Tanggal between @fromdate AND @todate
+	Group by a.Tanggal, b.MaterialRowID , a.NoBukti   
+) x  
+where x.QtyTotal > 0
+and @ProsesProduksiRowID = '39B6FD9E-BF9A-4CCC-AB77-E4CA5F2162EC' -- SAND CORE
+and tm.RowID='AAC4712D-6638-43DD-812E-577397ED7D32'
+
+union all
+
+Select 
+  tm.RowID
+, tm.KdMaterial
+, tm.NmMaterial
+, x.Nama as ProsesName    
+,  x.Tanggal    
+, 'Ke GUDANG SMF NAKAYAMA' Uraian    
+, null SaldoAwal
+,null Approved
+,null Approvedby
+,null ApprovedDate     
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi		
+, null qtyRetur    
+, null QtyLiniLain    
+, null QtyKeluar    
+, x.QtyTotal QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, (-1)*x.QtyTotal     
+from ISAPabrik.dbo.Material tm       
+Cross APPLY     
+(     
+	select a.Tanggal Tanggal,'' Approved,'' Approvedby, ''ApprovedDate, sum(b.Qty) QtyTotal, a.NoBukti Nama      
+	from ISAPabrik.dbo.Pengeluaran a
+	inner join ISAPabrik.dbo.PengeluaranDetail b on a.RowID=b.HeaderRowID
+	where LineProduksiKeRowID='7AD2D9D0-1041-4039-B248-72126D685B6E' --GUDANG SMF NAKAYAMA
+	and LineProduksiDariRowID='6F1E2F61-611E-40C3-8F00-CD8D6A1114AB'
+	and b.MaterialRowID = tm.RowID
+	and a.Tanggal between @fromdate AND @todate
+	and a.NoBukti not like '%/S'
+	Group by a.Tanggal, b.MaterialRowID , a.NoBukti   
+) x  
+where x.QtyTotal > 0
+and @ProsesProduksiRowID = '2848AE06-AFBC-453D-B38C-EC80A1BD16C2' -- MACH
+and tm.NmMaterial like 'JASA%'
+
+union all
+
+Select 
+  tm.RowID
+, tm.KdMaterial
+, tm.NmMaterial
+, x.Nama as ProsesName    
+,  x.Tanggal    
+, 'Ke GUDANG SMF NAKAYAMA' Uraian    
+, null SaldoAwal 
+,null Approved
+,null Approvedby
+,null ApprovedDate    
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi		
+, null qtyRetur    
+, null QtyLiniLain    
+, null QtyKeluar    
+, x.QtyTotal QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, (-1)*x.QtyTotal     
+from ISAPabrik.dbo.Material tm       
+Cross APPLY     
+(     
+	select a.Tanggal Tanggal,'' Approved,'' Approvedby, ''ApprovedDate, sum(b.Qty) QtyTotal, a.NoBukti Nama      
+	from ISAPabrik.dbo.Pengeluaran a
+	inner join ISAPabrik.dbo.PengeluaranDetail b on a.RowID=b.HeaderRowID
+	where LineProduksiKeRowID='7AD2D9D0-1041-4039-B248-72126D685B6E' --GUDANG SMF NAKAYAMA
+	and LineProduksiDariRowID='6F1E2F61-611E-40C3-8F00-CD8D6A1114AB'
+	and b.MaterialRowID = tm.RowID
+	and a.Tanggal between @fromdate AND @todate
+	and a.NoBukti not like '%/S'
+	Group by a.Tanggal, b.MaterialRowID , a.NoBukti   
+) x  
+where x.QtyTotal > 0
+and @ProsesProduksiRowID = '2848AE06-AFBC-453D-B38C-EC80A1BD16C2' -- MACH
+and tm.KdMaterial in ('OLKTB09M','OLKTB10M')
+
+union all
+     
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, null ProsesName    
+, x.Tanggal    
+, 'Ke ' +  Uraian    
+, null SaldoAwal
+,null Approved
+,null Approvedby
+,null ApprovedDate     
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, x.QtyTotal QtyLiniLain    
+, NULL QtyKeluar    
+, NULL QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, -x.QtyTotal     
+from ISAPabrik.dbo.Material tm     
+Cross APPLY     
+(     
+ select Sum(pd.Qty) QtyTotal,pe.Tanggal,'' Approved,'' Approvedby, ''ApprovedDate, lk.NmLine Uraian
+ FROM ISAPabrik..PengeluaranDetail pd 
+ join isapabrik..Pengeluaran pe on pe.RowID = pd.HeaderRowID
+ --left join ISAPabrik..Material m on m.RowID = pd.MaterialRowID
+ join ISAPabrik..LineProduksi lp on  pe.LineProduksiDariRowID = lp.RowID 
+ join ISAPabrik..LineProduksi lk on  pe.LineProduksiKeRowID = lk.RowID  
+ WHERE pe.Tanggal BETWEEN @fromdate AND @todate          
+ and tm.RowID = pd.MaterialRowID   
+ and pe.LineProduksiDariRowID = '6C731B96-86B5-4F45-8CFC-FB0637CE9A46' --SAND CORE
+ and pe.LineProduksiKeRowID = '7AD2D9D0-1041-4039-B248-72126D685B6E' --SMF
+  Group by pe.Tanggal, lk.NmLine  
+) x    
+where x.QtyTotal > 0  and x.QtyTotal > 0
+and tm.KdMaterial in ('OLARM001SN')
+and @LiniProduksiRowID = '6C731B96-86B5-4F45-8CFC-FB0637CE9A46' --Lini SANDCORE 
+and @ProsesProduksiRowID = '39B6FD9E-BF9A-4CCC-AB77-E4CA5F2162EC' -- hanya diambil satu kali
+
+union all
+     
+Select tm.RowID    
+, tm.KdMaterial    
+, tm.NmMaterial    
+, null ProsesName    
+, x.Tanggal    
+, 'Dari GBB' Uraian    
+, null SaldoAwal
+,null Approved
+,null Approvedby
+,null ApprovedDate     
+, x.QtyTotal qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi    
+, null qtyRetur    
+, null QtyLiniLain    
+, NULL QtyKeluar    
+, NULL QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, x.QtyTotal     
+from ISAPabrik.dbo.Material tm     
+Cross APPLY     
+(     
+ select sum(pd.Qty) QtyTotal,pe.Tanggal,'' Approved,'' Approvedby, ''ApprovedDate
+ FROM ISAPabrik..PengeluaranDetail pd 
+ left join isapabrik..Pengeluaran pe on pe.RowID = pd.HeaderRowID
+ --left join ISAPabrik..Material m on m.RowID = pd.MaterialRowID
+ left join ISAPabrik..LineProduksi lp on  pe.LineProduksiDariRowID = lp.RowID 
+ left join ISAPabrik..LineProduksi lk on  pe.LineProduksiKeRowID = lk.RowID  
+ WHERE pe.Tanggal BETWEEN @fromdate AND @todate          
+ and tm.RowID = pd.MaterialRowID   
+ and lp.NmLine = 'MATERIAL (BAHAN BAKU)'
+ and lk.NmLine = 'NAKAYAMA'
+ Group by pe.Tanggal  
+) x    
+where x.QtyTotal > 0 
+and tm.KdMaterial in ('OLKTB10S')
+and @LiniProduksiRowID = '6C731B96-86B5-4F45-8CFC-FB0637CE9A46' --Lini SANDCORE 
+and @ProsesProduksiRowID = '39B6FD9E-BF9A-4CCC-AB77-E4CA5F2162EC' -- hanya diambil satu kali
+
+
+/*
+--< DEBURING - OLADME14C :TIOCM 5/1/2022
+union all
+
+Select 
+  tm.RowID
+, tm.KdMaterial
+, tm.NmMaterial
+, x.Nama as ProsesName    
+,  x.Tanggal    
+, 'Ke GUDANG SMF NAKAYAMA' Uraian    
+, null SaldoAwal    
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi		
+, null qtyRetur    
+, null QtyLiniLain    
+, null QtyKeluar    
+, x.QtyTotal QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, (-1)*x.QtyTotal     
+from ISAPabrik.dbo.Material tm 
+Cross APPLY     
+(     
+	select a.Tanggal Tanggal, sum(b.Qty) QtyTotal, a.NoBukti Nama      
+	from ISAPabrik.dbo.Pengeluaran a
+	inner join ISAPabrik.dbo.PengeluaranDetail b on a.RowID=b.HeaderRowID
+	where LineProduksiKeRowID='7AD2D9D0-1041-4039-B248-72126D685B6E' --GUDANG SMF NAKAYAMA
+	and b.MaterialRowID = tm.RowID
+	and a.Tanggal between @fromdate AND @todate
+	and a.NoBukti like '%/S'
+	Group by a.Tanggal, b.MaterialRowID , a.NoBukti   
+) x  
+where x.QtyTotal > 0 and tm.RowID='B4E6399D-494C-4166-AC55-F6924CB2045B' --OLADME14C
+and @ProsesProduksiRowID = '27BC837D-A6FD-4DF8-A097-D8DE31DD034A' -- DEBURING | TIOCM 5/1/2022
+and Tanggal <= '20211213'
+
+-->
+
+union all
+-- Baca Pengeluaran untuk yang routing terakhir
+Select 
+  tm.RowID
+, tm.KdMaterial
+, tm.NmMaterial
+, x.Nama as ProsesName    
+,  x.Tanggal    
+, 'Ke GUDANG SMF NAKAYAMA' Uraian    
+, null SaldoAwal    
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi		
+, null qtyRetur    
+, null QtyLiniLain    
+, null QtyKeluar    
+, x.QtyTotal QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, (-1)*x.QtyTotal     
+from ISAPabrik.dbo.Material tm 
+Cross APPLY     
+(     
+	select x.IDMaterial, z.NextProsesProduksiRowID from 
+		(
+		select distinct IDMaterial 
+		from ProsesProduksiNextMultiple
+		)x
+		outer apply
+		(
+			select NextProsesProduksiRowID from ProsesProduksiNextMultiple
+			where IDMaterial = x.IDMaterial
+			and NextProsesProduksiRowID not in
+			(
+				select ProsesProduksiRowID from ProsesProduksiNextMultiple
+				where IDMaterial = x.IDMaterial
+			)
+		)z
+		where z.NextProsesProduksiRowID = @ProsesProduksiRowID
+		and @ProsesProduksiRowID != '53FA56A4-5D6D-47B3-9979-ADC6545912FC'
+		and x.IDMaterial = tm.RowID
+) xx       
+Cross APPLY     
+(     
+	select a.Tanggal Tanggal, sum(b.Qty) QtyTotal, a.NoBukti Nama      
+	from ISAPabrik.dbo.Pengeluaran a
+	inner join ISAPabrik.dbo.PengeluaranDetail b on a.RowID=b.HeaderRowID
+	where LineProduksiKeRowID='7AD2D9D0-1041-4039-B248-72126D685B6E' --GUDANG SMF NAKAYAMA
+	and b.MaterialRowID = xx.IDMaterial
+	and a.Tanggal between @fromdate AND @todate
+	--AND B.MaterialRowID NOT IN-- TIOCM 8 MARET 21
+	--(
+	--	'1031CFFC-83F5-4DA8-8B16-C41A77343A14', -- CLUTCH LEVER - 219366
+	--	'1217F7DC-CD82-4950-A327-463A169886C0', -- FRONT BRACKET GD 117711-1
+	--	'3073A909-2287-43E4-86B1-32AAA725839F' -- UPPER BRACKET 12161-01908
+	--)
+	Group by a.Tanggal, b.MaterialRowID , a.NoBukti   
+) x  
+where x.QtyTotal > 0 and tm.RowID='B4E6399D-494C-4166-AC55-F6924CB2045B' --OLADME14C
+and @ProsesProduksiRowID = 'AE867A9A-0160-49E5-9BD8-4E73A007F2BD' -- BUFFING NAKAYAMA
+and Tanggal >= '20211213'--5/1/2022
+
+union all
+-- Baca Pengeluaran untuk yang routing terakhir
+Select 
+  tm.RowID
+, tm.KdMaterial
+, tm.NmMaterial
+, x.Nama as ProsesName    
+,  x.Tanggal    
+, 'Ke GUDANG SMF NAKAYAMA' Uraian    
+, null SaldoAwal    
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi		
+, null qtyRetur    
+, null QtyLiniLain    
+, null QtyKeluar    
+, x.QtyTotal QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, (-1)*x.QtyTotal     
+from ISAPabrik.dbo.Material tm 
+Cross APPLY     
+(     
+	select x.IDMaterial, z.NextProsesProduksiRowID from 
+		(
+		select distinct IDMaterial 
+		from ProsesProduksiNextMultiple
+		)x
+		outer apply
+		(
+			select NextProsesProduksiRowID from ProsesProduksiNextMultiple
+			where IDMaterial = x.IDMaterial
+			and NextProsesProduksiRowID not in
+			(
+				select ProsesProduksiRowID from ProsesProduksiNextMultiple
+				where IDMaterial = x.IDMaterial
+			)
+		)z
+		where z.NextProsesProduksiRowID = @ProsesProduksiRowID
+		and @ProsesProduksiRowID != '53FA56A4-5D6D-47B3-9979-ADC6545912FC'
+		and x.IDMaterial = tm.RowID
+) xx       
+Cross APPLY     
+(     
+	select a.Tanggal Tanggal, sum(b.Qty) QtyTotal, a.NoBukti Nama      
+	from ISAPabrik.dbo.Pengeluaran a
+	inner join ISAPabrik.dbo.PengeluaranDetail b on a.RowID=b.HeaderRowID
+	where LineProduksiKeRowID='7AD2D9D0-1041-4039-B248-72126D685B6E' --GUDANG SMF NAKAYAMA
+	and b.MaterialRowID = xx.IDMaterial
+	and a.Tanggal between @fromdate AND @todate
+	--AND B.MaterialRowID NOT IN-- TIOCM 8 MARET 21
+	--(
+	--	'1031CFFC-83F5-4DA8-8B16-C41A77343A14', -- CLUTCH LEVER - 219366
+	--	'1217F7DC-CD82-4950-A327-463A169886C0', -- FRONT BRACKET GD 117711-1
+	--	'3073A909-2287-43E4-86B1-32AAA725839F' -- UPPER BRACKET 12161-01908
+	--)
+	Group by a.Tanggal, b.MaterialRowID , a.NoBukti   
+) x  
+where x.QtyTotal > 0 and tm.RowID!='B4E6399D-494C-4166-AC55-F6924CB2045B' --OLADME14C
+and @ProsesProduksiRowID = 'AE867A9A-0160-49E5-9BD8-4E73A007F2BD' -- BUFFING NAKAYAMA
+--and Tanggal >= '20211213'--5/1/2022
+*/
+union all 
+Select 
+  tm.RowID
+, tm.KdMaterial
+, tm.NmMaterial
+, x.Nama as ProsesName    
+,  x.Tanggal    
+, 'Ke MATERIAL (BAHAN BAKU)' Uraian    
+, null SaldoAwal
+,null Approved
+,null Approvedby
+,null ApprovedDate     
+, null qtyMasuk    
+, null qtyProduksi    
+, null qtyKoreksi    
+, null qtyMutasi		
+, null qtyRetur    
+, null QtyLiniLain    
+,null QtyKeluar    
+, x.QtyTotal QtyKeLiniBerikutnya
+, NULL QtyRevisi
+, (-1)*x.QtyTotal     
+from ISAPabrik.dbo.Material tm 
+Cross APPLY     
+(     
+	select a.Tanggal Tanggal,'' Approved,'' Approvedby, ''ApprovedDate, sum(b.Qty) QtyTotal, a.NoBukti Nama      
+	from ISAPabrik.dbo.Pengeluaran a
+	inner join ISAPabrik.dbo.PengeluaranDetail b on a.RowID=b.HeaderRowID
+	where LineProduksiKeRowID='54D40E8C-2B89-4010-AF76-26A1BDA6B798' --MATERIAL (BAHAN BAKU)
+	and LineProduksiDariRowID in 
+	(
+		'771A3CE0-D157-44B2-98BE-641F2ED4C146' --NAKAYAMA
+	)
+	and b.MaterialRowID = tm.RowID
+	and tm.KdMaterial = 'OLHMI10M'
+	and a.Tanggal between @fromdate AND @todate
+	Group by a.Tanggal, b.MaterialRowID , a.NoBukti   
+) x  
+where x.QtyTotal > 0
+and @LiniProduksiRowID = '6F1E2F61-611E-40C3-8F00-CD8D6A1114AB' --Lini Machining Nakayama 
+and @ProsesProduksiRowID = '2848AE06-AFBC-453D-B38C-EC80A1BD16C2' -- hanya diambil satu kali
+
+
+)
+
+
+
+

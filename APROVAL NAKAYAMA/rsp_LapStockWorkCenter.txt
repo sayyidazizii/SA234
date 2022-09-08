@@ -1,0 +1,124 @@
+USE [ISAPabrikProduksi]
+GO
+/****** Object:  StoredProcedure [dbo].[rsp_StokWorkCenter_BNakayama]    Script Date: 08/25/2022 11:25:15 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+
+-- =============================================    
+-- Author		: Andreas   
+-- Create date	: 30 Maret 2016    
+-- Description	: function StockWork Center    
+-- =============================================    
+ALTER Procedure [dbo].[rsp_StokWorkCenter_BNakayama]
+@fromdate date,
+@todate date,
+@ProsesProduksiRowID Uniqueidentifier = null,
+@FlagRekap int = null
+AS
+BEGIN
+ 
+declare @fromdate2 date = @fromdate
+declare @todate2 date=@todate
+declare @ProsesProduksiRowID2 Uniqueidentifier=@ProsesProduksiRowID
+declare @FlagRekap2 int=@FlagRekap
+
+Declare @lastPrevMount date =  DATEADD(s,-1,DATEADD(mm, DATEDIFF(m,0,@fromdate2),0))
+Declare @EmptyUID Uniqueidentifier = cast(cast(0 as binary) as uniqueidentifier)
+--edit SA
+declare @result table(
+RowID uniqueidentifier,
+KdMaterial varchar(50),
+NmMaterial varchar(200),
+ProsesNAme varchar(100),
+Tanggal date,
+Uraian varchar(200),
+SaldoAwal float,
+Approved varchar,
+Approvedby varchar,
+ApprovedDate varchar,
+qtyMasuk float,
+qtyProduksi float,
+qtyKoreksi float,
+qtyMutasi float,
+qtyRetur float,
+QtyLiniLain float,
+QtyKeluar float,
+QtyKeLiniBerikutnya float,
+QtyRevisi float,
+QtyAkhir float
+)
+
+Declare @ProsesRowID uniqueidentifier
+declare @LiniRowID uniqueidentifier 
+
+IF (@ProsesProduksiRowID2 = @EmptyUID)
+BEGIN
+	--MACHINING NAKAYAMA
+	DECLARE Temp_cursor CURSOR FOR  
+	select RowID from ProsesProduksi 
+	where IDLini = '6F1E2F61-611E-40C3-8F00-CD8D6A1114AB' --Lini Machining Nakayama
+	OPEN Temp_cursor; 
+
+	FETCH NEXT FROM Temp_cursor INTO @ProsesRowID ;
+	WHILE @@FETCH_STATUS = 0      
+	BEGIN 
+	
+	set @LiniRowID = '6F1E2F61-611E-40C3-8F00-CD8D6A1114AB'
+	
+	insert @result
+	select * from fn_StockWorkcenter_Nakayama(@fromdate2,@todate2,@ProsesRowID,@LiniRowID,@lastPrevMount)
+
+	FETCH NEXT FROM Temp_cursor INTO @ProsesRowID ;
+	END      
+	CLOSE Temp_cursor;      
+	DEALLOCATE Temp_cursor;  
+END
+ELSE
+BEGIN
+	--SELAIN MACHINING NAKAYAMA
+	select @LiniRowID = IDLini from ProsesProduksi where RowID = @ProsesProduksiRowID2;
+	
+	insert @result
+	select * from fn_StockWorkcenter_Nakayama(@fromdate2,@todate2,@ProsesProduksiRowID2,@LiniRowID,@lastPrevMount)
+END
+
+	if @FlagRekap2 = 1
+	begin
+		select
+		a.KdMaterial,
+		a.NmMaterial,
+		SUM(ISNULL(a.SaldoAwal,0)) SaldoAwal,
+		a.Approved,
+		a.Approvedby,
+		a.ApprovedDate,
+		SUM(ISNULL(a.qtyMasuk,0)) qtyMasuk,
+		SUM(ISNULL(a.qtyProduksi,0)) qtyProduksi,
+		SUM(ISNULL(a.qtyKoreksi,0)) qtyKoreksi,
+		SUM(ISNULL(a.qtyMutasi,0)) qtyMutasi,
+		SUM(ISNULL(a.qtyRetur,0)) qtyRetur,
+		SUM(ISNULL(a.QtyLiniLain,0)) QtyLiniLain,
+		SUM(ISNULL(a.QtyKeluar,0)) QtyKeluar,
+		SUM(ISNULL(a.QtyKeLiniBerikutnya,0)) QtyKeLiniBerikutnya,
+		SUM(ISNULL(a.QtyAkhir,0)) QtyAkhir,
+		SUM(ISNULL(a.QtyRevisi,0)) QtyRevisi
+		from @result a
+		group by 
+		a.KdMaterial,
+		a.NmMaterial,
+		a.Approved,
+		a.Approvedby,
+		a.ApprovedDate
+		order by a.KdMaterial asc
+	end
+	else
+	begin
+		select*from @result a
+		order by a.KdMaterial asc, a.Tanggal asc
+	end
+END
+
